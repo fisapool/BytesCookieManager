@@ -120,21 +120,69 @@ export class CookieManager {
   async importCookies(encryptedData: EncryptedData, settings: Settings): Promise<ImportResult> {
     try {
       const chrome = getChromeAPI();
-
-      let cookies: Cookie[];
-      if (encryptedData.encrypted) {
-        cookies = await this.security.decryptCookies(encryptedData, settings);
-      } else {
-        cookies = encryptedData.data as Cookie[];
+      
+      if (!chrome?.cookies?.set) {
+        throw {
+          title: 'Browser API Unavailable',
+          message: 'Cookie API is not accessible',
+          details: 'This extension requires access to the Chrome cookie API.'
+        };
       }
 
-      const validationResults = await Promise.all(
-        cookies.map(cookie => this.validator.validateCookie(cookie, settings))
-      );
+      let cookies: Cookie[];
+      try {
+        if (encryptedData.encrypted) {
+          cookies = await this.security.decryptCookies(encryptedData, settings);
+        } else {
+          if (!Array.isArray(encryptedData.data)) {
+            throw {
+              title: 'Invalid Cookie Data',
+              message: 'The imported data is not in the correct format',
+              details: 'The cookie data must be an array of valid cookie objects'
+            };
+          }
+          cookies = encryptedData.data as Cookie[];
+        }
+      } catch (decryptError) {
+        throw {
+          title: 'Decryption Failed',
+          message: 'Failed to process cookie data',
+          details: decryptError instanceof Error ? decryptError.message : 'Unable to decrypt or parse cookie data'
+        };
+      }
+
+      if (cookies.length === 0) {
+        throw {
+          title: 'No Cookies Found',
+          message: 'The imported file contains no cookies',
+          details: 'Please check that you selected the correct file'
+        };
+      }
+
+      let validationResults;
+      try {
+        validationResults = await Promise.all(
+          cookies.map(cookie => this.validator.validateCookie(cookie, settings))
+        );
+      } catch (validationError) {
+        throw {
+          title: 'Validation Error',
+          message: 'Failed to validate cookies',
+          details: validationError instanceof Error ? validationError.message : 'Cookie validation process failed'
+        };
+      }
 
       const validCookies = cookies.filter((_, index) => 
         validationResults[index].isValid
       );
+
+      if (validCookies.length === 0) {
+        throw {
+          title: 'No Valid Cookies',
+          message: 'None of the cookies passed validation',
+          details: 'All cookies were rejected due to validation rules'
+        };
+      }
 
       const results = await Promise.all(
         validCookies.map(async cookie => {
@@ -206,8 +254,16 @@ export class CookieManager {
 
       return result;
     } catch (error) {
-      await this.errorManager.handleError(error, "import");
-      throw error;
+      const formattedError = await this.errorManager.handleError(error, "import");
+      if (formattedError.severity === 'critical') {
+        console.error('Critical import error:', formattedError);
+      }
+      // Ensure we're throwing a properly formatted error object
+      throw typeof error === 'object' && error !== null ? error : {
+        title: 'Import Failed',
+        message: String(error),
+        details: 'An unexpected error occurred during cookie import'
+      };
     }
   }
 }
