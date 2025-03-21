@@ -11,6 +11,10 @@ export interface Cookie {
   httpOnly: boolean;
   sameSite?: "no_restriction" | "lax" | "strict" | "unspecified" | "none";
   expirationDate?: number;
+  // Additional BytesCookies properties
+  hostOnly?: boolean;
+  session?: boolean;
+  storeId?: string;
 }
 
 // Website Information

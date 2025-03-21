@@ -41,7 +41,7 @@ export class CookieManager {
           if (process.env.NODE_ENV === 'development' || window.location.hostname.includes('replit')) {
             console.log('DEV MODE: Using mock cookies for domain:', domain);
             
-            // Sample development cookies
+            // Sample development cookies with BytesCookies properties
             const mockCookies: Cookie[] = [
               {
                 name: "session_id",
@@ -51,7 +51,10 @@ export class CookieManager {
                 secure: true,
                 httpOnly: true,
                 sameSite: "strict",
-                expirationDate: Date.now() / 1000 + 86400 // 1 day
+                expirationDate: Date.now() / 1000 + 86400, // 1 day
+                hostOnly: true,
+                session: false,
+                storeId: "0"
               },
               {
                 name: "user_preferences",
@@ -61,7 +64,10 @@ export class CookieManager {
                 secure: false,
                 httpOnly: false,
                 sameSite: "lax",
-                expirationDate: Date.now() / 1000 + 2592000 // 30 days
+                expirationDate: Date.now() / 1000 + 2592000, // 30 days
+                hostOnly: false,
+                session: false,
+                storeId: "0"
               },
               {
                 name: "tracking_id",
@@ -71,7 +77,10 @@ export class CookieManager {
                 secure: true,
                 httpOnly: false,
                 sameSite: "none",
-                expirationDate: Date.now() / 1000 + 86400 // 1 day
+                expirationDate: Date.now() / 1000 + 86400, // 1 day
+                hostOnly: false,
+                session: false,
+                storeId: "0"
               }
             ];
             
@@ -104,6 +113,10 @@ export class CookieManager {
             httpOnly: c.httpOnly, 
             sameSite: c.sameSite,
             expirationDate: c.expirationDate,
+            // Include BytesCookies additional properties
+            hostOnly: c.hostOnly || false,
+            session: c.session || false,
+            storeId: c.storeId || "0"
           }));
           resolve(cookieData);
         });
@@ -198,7 +211,7 @@ export class CookieManager {
           let importedCookies: Cookie[] = [];
           
           if (importData.encrypted) {
-            // Just simulate decryption by returning sample cookies
+            // Just simulate decryption by returning sample cookies with BytesCookies properties
             importedCookies = [
               {
                 name: "imported_session",
@@ -208,7 +221,10 @@ export class CookieManager {
                 secure: true,
                 httpOnly: true,
                 sameSite: "strict",
-                expirationDate: Date.now() / 1000 + 86400
+                expirationDate: Date.now() / 1000 + 86400,
+                hostOnly: true,
+                session: false,
+                storeId: "0"
               }
             ];
           } else if (Array.isArray(importData.data)) {
