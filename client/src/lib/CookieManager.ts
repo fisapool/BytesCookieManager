@@ -174,9 +174,20 @@ export class CookieManager {
         }
       };
 
-      // Refresh page on successful import
+      // Show success message and refresh current tab
       if (result.success) {
-        window.location.reload();
+        // Get the current tab and refresh only that tab
+        const chrome = getChromeAPI();
+        if (chrome?.tabs) {
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs[0]?.id) {
+              chrome.tabs.reload(tabs[0].id);
+            }
+          });
+        } else {
+          // Fallback for web development
+          window.location.reload();
+        }
       }
 
       return result;
