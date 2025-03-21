@@ -26,10 +26,24 @@ export class CookieManager {
 
       const getCookiesPromise = new Promise<Cookie[]>((resolve, reject) => {
         const timeout = setTimeout(() => {
-          reject(new Error('Cookie retrieval timeout'));
-        }, 5000);
+          reject({
+            title: 'Cookie Export Failed',
+            message: 'Could not retrieve cookies within the timeout period',
+            details: 'The browser took too long to respond. This might happen if there are too many cookies or if the browser is busy.'
+          });
+        }, 10000); // Increased timeout to 10 seconds
 
-        chrome?.cookies?.getAll({ domain }, (cookies: any[]) => {
+        if (!chrome?.cookies?.getAll) {
+          clearTimeout(timeout);
+          reject({
+            title: 'Browser API Unavailable',
+            message: 'Cookie API is not accessible',
+            details: 'This extension requires access to the Chrome cookie API.'
+          });
+          return;
+        }
+
+        chrome.cookies.getAll({ domain }, (cookies: any[]) => {
           clearTimeout(timeout);
           if (!cookies) {
             resolve([]);
@@ -91,11 +105,15 @@ export class CookieManager {
       };
     } catch (error) {
       const formattedError = await this.errorManager.handleError(error, "export");
-      // Only log critical errors
       if (formattedError.severity === 'critical') {
         console.error('Critical export error:', formattedError);
       }
-      throw formattedError;
+      // Ensure we're throwing a properly formatted error object
+      throw typeof error === 'object' && error !== null ? error : {
+        title: 'Export Failed',
+        message: String(error),
+        details: 'An unexpected error occurred during cookie export'
+      };
     }
   }
 
