@@ -50,15 +50,10 @@ export const chromeMock: ChromeAPI = {
       };
     },
     onMessage: {
-      addListener: (callback: (message: any, sender: any, sendResponse: any) => void) => {
-        // Mock implementation
-      },
-      removeListener: (callback: (message: any, sender: any, sendResponse: any) => void) => {
-        // Mock implementation
-      }
+      addListener: () => {},
+      removeListener: () => {}
     },
     sendMessage: (message: any, callback?: (response: any) => void) => {
-      // Mock implementation
       if (callback) {
         callback({ status: 'success' });
       }
@@ -72,21 +67,67 @@ export const chromeMock: ChromeAPI = {
         {
           name: "session",
           value: "mock-session-value",
-          domain: "example.com",
+          domain: details.domain || "example.com",
           path: "/",
           secure: true,
           httpOnly: true,
           sameSite: "strict",
-          expirationDate: Date.now() / 1000 + 86400 // 1 day from now
+          expirationDate: Date.now() / 1000 + 86400
         },
         {
           name: "preferences",
           value: "theme=dark",
-          domain: "example.com",
+          domain: details.domain || "example.com",
           path: "/",
           secure: false,
           httpOnly: false,
           sameSite: "lax",
+          expirationDate: Date.now() / 1000 + 86400
+        }
+      ]);
+    },
+    set: (details: any, callback?: (cookie: any) => void) => {
+      if (callback) {
+        callback(details);
+      }
+    },
+    remove: (details: any, callback?: () => void) => {
+      if (callback) {
+        callback();
+      }
+    }
+  },
+  tabs: {
+    query: (queryInfo: any, callback: (tabs: any[]) => void) => {
+      callback([{
+        id: 1,
+        url: 'https://example.com',
+        favIconUrl: 'https://example.com/favicon.ico'
+      }]);
+    },
+    reload: (tabId: number) => {}
+  },
+  storage: {
+    sync: {
+      get: (keys: any, callback?: (items: any) => void) => {
+        if (callback) {
+          callback({});
+        }
+      },
+      set: (items: any, callback?: () => void) => {
+        if (callback) {
+          callback();
+        }
+      }
+    }
+  },
+  downloads: {
+    download: (options: any, callback?: (downloadId: string) => void) => {
+      if (callback) {
+        callback('mock-download-id');
+      }
+    }
+  }
           expirationDate: Date.now() / 1000 + 2592000 // 30 days from now
         }
       ]);
