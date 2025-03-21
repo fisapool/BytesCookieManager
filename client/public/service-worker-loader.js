@@ -1,6 +1,6 @@
 // Service worker for FISABytes
 self.addEventListener('install', (event) => {
-  console.log('FISABytes Service Worker installing...');
+  console.log('Service Worker installing...');
   event.waitUntil(
     Promise.resolve()
       .then(() => self.skipWaiting())
@@ -9,7 +9,7 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('FISABytes Service Worker activated');
+  console.log('Service Worker activated');
   event.waitUntil(
     Promise.resolve()
       .then(() => self.clients.claim())
@@ -17,19 +17,43 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Listen for messages from the popup
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('Message received in service worker:', message);
-  
-  if (message.type === 'EXPORT_COOKIES') {
-    // Handle cookie export in the background if needed
-    sendResponse({ status: 'success' });
-  } else if (message.type === 'IMPORT_COOKIES') {
-    // Handle cookie import in the background if needed
-    sendResponse({ status: 'success' });
-  }
-  
-  return true; // Keep the message channel open for async response
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    (async () => {
+      try {
+        const request = event.request;
+        // Try to fetch the resource
+        const response = await fetch(request);
+        
+        // If successful, return the response
+        if (response.ok) {
+          return response;
+        }
+        
+        // If the response wasn't ok, throw an error
+        throw new Error(`HTTP error! status: ${response.status}`);
+      } catch (error) {
+        console.error('Fetch error:', error);
+        // Return a basic response if fetch fails
+        return new Response('Network error occurred', {
+          status: 500,
+          headers: { 'Content-Type': 'text/plain' }
+        });
+      }
+    })()
+  );
 });
 
-console.log('FISABytes Service Worker loaded');
+// Listen for messages from content scripts or popup
+self.addEventListener('message', (event) => {
+  console.log('Service worker received message:', event.data);
+  
+  // Example: Handle cookie export message
+  if (event.data.type === 'EXPORT_COOKIES') {
+    // Respond back to the sender
+    event.ports[0].postMessage({
+      type: 'COOKIES_EXPORTED',
+      success: true
+    });
+  }
+});

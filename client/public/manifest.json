@@ -13,7 +13,7 @@
   "action": {
     "default_popup": "index.html",
     "default_icon": "img/logo-48.png",
-    "default_title": "FISABytes Cookie Manager"
+    "default_title": "FISABytes"
   },
   "background": {
     "service_worker": "service-worker-loader.js",
@@ -24,6 +24,7 @@
     "storage",
     "tabs",
     "activeTab",
+    "scripting",
     "downloads"
   ],
   "host_permissions": [

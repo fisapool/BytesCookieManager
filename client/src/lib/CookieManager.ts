@@ -1,6 +1,7 @@
 import { CookieEncryption } from "./CookieEncryption";
 import { CookieValidator } from "./CookieValidator";
 import { ErrorManager } from "./ErrorManager";
+import { getChromeAPI } from "./chromeMock";
 import { 
   Cookie, 
   ExportResult, 
@@ -22,20 +23,27 @@ export class CookieManager {
 
   async exportCookies(domain: string, settings: Settings): Promise<ExportResult> {
     try {
-      // Get cookies from Chrome API
-      const cookies = await chrome.cookies.getAll({ domain });
+      const chrome = getChromeAPI();
+      
+      // Get cookies using a Promise wrapper around the Chrome API
+      const getCookiesPromise = new Promise<Cookie[]>((resolve) => {
+        chrome.cookies.getAll({ domain }, (cookies) => {
+          // Convert to our internal format
+          const cookieData: Cookie[] = cookies.map(c => ({
+            name: c.name,
+            value: c.value,
+            domain: c.domain,
+            path: c.path,
+            secure: c.secure,
+            httpOnly: c.httpOnly, 
+            sameSite: c.sameSite,
+            expirationDate: c.expirationDate,
+          }));
+          resolve(cookieData);
+        });
+      });
 
-      // Convert to our internal format
-      const cookieData: Cookie[] = cookies.map(c => ({
-        name: c.name,
-        value: c.value,
-        domain: c.domain,
-        path: c.path,
-        secure: c.secure,
-        httpOnly: c.httpOnly, 
-        sameSite: c.sameSite,
-        expirationDate: c.expirationDate,
-      }));
+      const cookieData = await getCookiesPromise;
 
       // Validate cookies
       const validationResults = await Promise.all(
@@ -66,7 +74,7 @@ export class CookieManager {
         success: true,
         data: exportData,
         metadata: {
-          total: cookies.length,
+          total: cookieData.length,
           valid: validCookies.length,
           timestamp: Date.now(),
           domain: domain
@@ -80,6 +88,8 @@ export class CookieManager {
 
   async importCookies(encryptedData: EncryptedData, settings: Settings): Promise<ImportResult> {
     try {
+      const chrome = getChromeAPI();
+      
       // Decrypt cookies if they are encrypted
       let cookies: Cookie[];
       if (encryptedData.encrypted) {
@@ -116,12 +126,23 @@ export class CookieManager {
               path: cookie.path,
               secure: cookie.secure,
               httpOnly: cookie.httpOnly,
-              sameSite: cookie.sameSite as chrome.cookies.SameSiteStatus,
+              sameSite: cookie.sameSite as any, // Use 'any' for development
               expirationDate: cookie.expirationDate,
               storeId: "0"
             };
             
-            await chrome.cookies.set(chromeCookie);
+            // Use a Promise wrapper around the Chrome API
+            const setCookiePromise = new Promise<void>((resolve, reject) => {
+              chrome.cookies.set(chromeCookie, (cookie) => {
+                if (cookie) {
+                  resolve();
+                } else {
+                  reject(new Error("Failed to set cookie"));
+                }
+              });
+            });
+            
+            await setCookiePromise;
             return { success: true, cookie };
           } catch (error) {
             return { 
