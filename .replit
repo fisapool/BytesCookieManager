@@ -15,7 +15,7 @@ localPort = 5000
 externalPort = 80
 
 [workflows]
-runButton = "Project"
+runButton = "Development"
 
 [[workflows.workflow]]
 name = "Project"
@@ -53,3 +53,12 @@ args = "mkdir -p dist"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "zip -r dist/extension.zip attached_assets/* client/dist/*"
+
+[[workflows.workflow]]
+name = "Development"
+author = 40728699
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
