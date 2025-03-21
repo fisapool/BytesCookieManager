@@ -32,13 +32,42 @@ export default function App() {
   const cookieManager = new CookieManager();
   
   const handleError = (err: Error | any) => {
-    setError(err.message || err.title || "An error occurred");
-    console.error('Error:', err);
+    // More detailed error logging to help debug
+    console.error('Error object type:', typeof err);
+    
+    if (err && typeof err === 'object') {
+      console.error('Error properties:', Object.keys(err));
+      console.error('Error stringified:', JSON.stringify(err, (key, value) => {
+        if (value instanceof Error) {
+          return {
+            name: value.name,
+            message: value.message,
+            stack: value.stack,
+          };
+        }
+        return value;
+      }, 2));
+    }
+    
+    // Extract meaningful information
+    const errorMessage = err && typeof err === 'object' 
+      ? err.message || err.title || JSON.stringify(err) 
+      : String(err);
+      
+    // Set error state
+    setError(errorMessage);
+    
+    // Prepare error info for the modal
+    const errorDetails = err && typeof err === 'object'
+      ? err.details || err.stack || JSON.stringify(err, null, 2)
+      : String(err);
+      
     setErrorInfo({
-      title: err.title || "Error", 
-      message: err.message || String(err), 
-      details: err.details || err.stack || ""
+      title: err && typeof err === 'object' ? (err.title || "Error") : "Error",
+      message: errorMessage,
+      details: errorDetails
     });
+    
     setShowErrorModal(true);
   };
 
@@ -146,12 +175,47 @@ export default function App() {
           try {
             setIsLoading(true);
             const content = e.target?.result as string;
-            const data = JSON.parse(content);
-
+            
+            // Validate JSON first
+            let data;
+            try {
+              data = JSON.parse(content);
+              console.log('Parsed import data:', {
+                keys: Object.keys(data),
+                encrypted: data?.encrypted,
+                dataType: data?.data ? typeof data.data : 'undefined'
+              });
+            } catch (parseError) {
+              throw {
+                title: 'Invalid JSON Format',
+                message: 'The file does not contain valid JSON data',
+                details: parseError instanceof Error ? parseError.message : 'Unable to parse file content as JSON'
+              };
+            }
+            
+            // Validate expected structure
+            if (!data || typeof data !== 'object') {
+              throw {
+                title: 'Invalid Cookie File',
+                message: 'The imported file does not have the expected structure',
+                details: 'Expected an object with data and encrypted properties'
+              };
+            }
+            
+            // Ensure we have the data field
+            if (data.data === undefined) {
+              throw {
+                title: 'Missing Cookie Data',
+                message: 'The imported file is missing cookie data',
+                details: 'The file should contain a "data" field with cookie information'
+              };
+            }
+            
             const result = await cookieManager.importCookies(data, settings);
 
             if (result.success) {
               // Show success notification
+              setError('Successfully imported cookies. The page will reload to apply changes.');
             } else {
               handleError({
                 title: "Import Partially Successful",
@@ -161,7 +225,7 @@ export default function App() {
             }
           } catch (error) {
             console.error('Import error:', error);
-            handleError(error instanceof Error ? error : new Error(String(error)));
+            handleError(error);
           } finally {
             setIsLoading(false);
           }

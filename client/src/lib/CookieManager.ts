@@ -162,6 +162,24 @@ export class CookieManager {
 
   async importCookies(encryptedData: EncryptedData, settings: Settings): Promise<ImportResult> {
     try {
+      // Validate input data first
+      if (!encryptedData) {
+        throw {
+          title: 'Invalid Import Data',
+          message: 'No data provided for import',
+          details: 'The import operation requires cookie data in a valid format.'
+        };
+      }
+      
+      // Log the structure of the data to help with debugging
+      console.log('Import data structure:', {
+        hasData: Boolean(encryptedData.data),
+        isEncrypted: encryptedData.encrypted,
+        dataType: encryptedData.data ? typeof encryptedData.data : 'undefined',
+        isArray: encryptedData.data ? Array.isArray(encryptedData.data) : false,
+        metadataKeys: encryptedData.metadata ? Object.keys(encryptedData.metadata) : 'no metadata'
+      });
+      
       const chrome = getChromeAPI();
       
       if (!chrome?.cookies?.set) {
@@ -214,22 +232,37 @@ export class CookieManager {
       let cookies: Cookie[];
       try {
         if (encryptedData.encrypted) {
+          console.log('Attempting to decrypt encrypted cookie data...');
           cookies = await this.security.decryptCookies(encryptedData, settings);
+          console.log('Decryption successful, got', cookies.length, 'cookies');
         } else {
+          if (!encryptedData.data) {
+            throw {
+              title: 'Missing Cookie Data',
+              message: 'The imported file has no cookie data',
+              details: 'The data property is missing or undefined in the imported file'
+            };
+          }
+          
           if (!Array.isArray(encryptedData.data)) {
+            console.error('Invalid data format:', typeof encryptedData.data, encryptedData.data);
             throw {
               title: 'Invalid Cookie Data',
               message: 'The imported data is not in the correct format',
-              details: 'The cookie data must be an array of valid cookie objects'
+              details: `Expected an array of cookies, but got ${typeof encryptedData.data}`
             };
           }
           cookies = encryptedData.data as Cookie[];
+          console.log('Using unencrypted cookie data, got', cookies.length, 'cookies');
         }
       } catch (decryptError) {
+        console.error('Decryption error details:', decryptError);
         throw {
           title: 'Decryption Failed',
           message: 'Failed to process cookie data',
-          details: decryptError instanceof Error ? decryptError.message : 'Unable to decrypt or parse cookie data'
+          details: decryptError instanceof Error ? decryptError.message : 
+                   (typeof decryptError === 'object' && decryptError !== null) ? 
+                   JSON.stringify(decryptError, null, 2) : 'Unable to decrypt or parse cookie data'
         };
       }
 
