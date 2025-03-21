@@ -200,7 +200,9 @@ export default function App() {
               console.log('Parsed import data:', {
                 keys: Object.keys(data),
                 encrypted: data?.encrypted,
-                dataType: data?.data ? typeof data.data : 'undefined'
+                hasDataField: data?.data !== undefined,
+                hasCookiesField: data?.cookies !== undefined,
+                isArray: Array.isArray(data)
               });
             } catch (parseError) {
               throw {
@@ -210,21 +212,31 @@ export default function App() {
               };
             }
             
-            // Validate expected structure
-            if (!data || typeof data !== 'object') {
+            // Validate expected structure - we now support multiple formats
+            if (!data) {
               throw {
                 title: 'Invalid Cookie File',
-                message: 'The imported file does not have the expected structure',
-                details: 'Expected an object with data and encrypted properties'
+                message: 'The imported file contains no data',
+                details: 'The file should contain cookie data in a valid format'
               };
             }
             
-            // Ensure we have the data field
-            if (data.data === undefined) {
+            // Check if we have cookies in any supported format
+            const hasCookieData = 
+              Array.isArray(data) || 
+              (data.data && Array.isArray(data.data)) || 
+              (data.cookies && Array.isArray(data.cookies)) || 
+              (data.url && data.cookies && Array.isArray(data.cookies));
+              
+            if (!hasCookieData) {
               throw {
                 title: 'Missing Cookie Data',
                 message: 'The imported file is missing cookie data',
-                details: 'The file should contain a "data" field with cookie information'
+                details: 'The file should contain cookies in one of these formats:\n' +
+                         '- Array of cookies directly\n' +
+                         '- { data: [...cookies] }\n' + 
+                         '- { cookies: [...cookies] }\n' + 
+                         '- { url: "...", cookies: [...cookies] }'
               };
             }
             

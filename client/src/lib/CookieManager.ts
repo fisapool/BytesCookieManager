@@ -160,10 +160,10 @@ export class CookieManager {
     }
   }
 
-  async importCookies(encryptedData: EncryptedData, settings: Settings): Promise<ImportResult> {
+  async importCookies(importData: any, settings: Settings): Promise<ImportResult> {
     try {
       // Validate input data first
-      if (!encryptedData) {
+      if (!importData) {
         throw {
           title: 'Invalid Import Data',
           message: 'No data provided for import',
@@ -173,11 +173,12 @@ export class CookieManager {
       
       // Log the structure of the data to help with debugging
       console.log('Import data structure:', {
-        hasData: Boolean(encryptedData.data),
-        isEncrypted: encryptedData.encrypted,
-        dataType: encryptedData.data ? typeof encryptedData.data : 'undefined',
-        isArray: encryptedData.data ? Array.isArray(encryptedData.data) : false,
-        metadataKeys: encryptedData.metadata ? Object.keys(encryptedData.metadata) : 'no metadata'
+        keys: importData ? Object.keys(importData) : [],
+        isEncrypted: Boolean(importData.encrypted),
+        hasData: Boolean(importData.data),
+        hasCookies: Boolean(importData.cookies),
+        isDataArray: importData.data ? Array.isArray(importData.data) : false,
+        isCookiesArray: importData.cookies ? Array.isArray(importData.cookies) : false
       });
       
       const chrome = getChromeAPI();
@@ -185,12 +186,12 @@ export class CookieManager {
       if (!chrome?.cookies?.set) {
         // In development mode, simulate successful import
         if (process.env.NODE_ENV === 'development' || window.location.hostname.includes('replit')) {
-          console.log('DEV MODE: Simulating cookie import for:', encryptedData);
+          console.log('DEV MODE: Simulating cookie import for:', importData);
           
           // Return a mock successful import result
           let importedCookies: Cookie[] = [];
           
-          if (encryptedData.encrypted) {
+          if (importData.encrypted) {
             // Just simulate decryption by returning sample cookies
             importedCookies = [
               {
@@ -204,8 +205,12 @@ export class CookieManager {
                 expirationDate: Date.now() / 1000 + 86400
               }
             ];
-          } else if (Array.isArray(encryptedData.data)) {
-            importedCookies = encryptedData.data as Cookie[];
+          } else if (Array.isArray(importData.data)) {
+            importedCookies = importData.data as Cookie[];
+          } else if (Array.isArray(importData.cookies)) {
+            importedCookies = importData.cookies as Cookie[];
+          } else if (Array.isArray(importData)) {
+            importedCookies = importData as Cookie[];
           }
           
           // In development, we'll just return success without actually setting any cookies
@@ -231,34 +236,43 @@ export class CookieManager {
 
       let cookies: Cookie[];
       try {
-        if (encryptedData.encrypted) {
+        if (importData.encrypted) {
           console.log('Attempting to decrypt encrypted cookie data...');
-          cookies = await this.security.decryptCookies(encryptedData, settings);
+          cookies = await this.security.decryptCookies(importData, settings);
           console.log('Decryption successful, got', cookies.length, 'cookies');
         } else {
-          if (!encryptedData.data) {
+          // Support multiple formats of cookie data
+          if (Array.isArray(importData)) {
+            // Direct array of cookies
+            cookies = importData as Cookie[];
+          } else if (importData.cookies && Array.isArray(importData.cookies)) {
+            // Format: { cookies: [...] } (used by BytesCookies)
+            cookies = importData.cookies as Cookie[];
+          } else if (importData.data && Array.isArray(importData.data)) {
+            // Format: { data: [...] } (our format)
+            cookies = importData.data as Cookie[];
+          } else if (importData.url && Array.isArray(importData.cookies)) {
+            // Format: { url: "...", cookies: [...] } (another common format)
+            cookies = importData.cookies as Cookie[];
+          } else {
+            console.error('Could not find cookie data in the import file:', importData);
             throw {
-              title: 'Missing Cookie Data',
-              message: 'The imported file has no cookie data',
-              details: 'The data property is missing or undefined in the imported file'
+              title: 'Invalid Cookie Format',
+              message: 'Could not find cookie data in the import file',
+              details: 'The file should contain cookies in one of these formats:\n' +
+                       '- Array of cookies directly\n' +
+                       '- { data: [...cookies] }\n' + 
+                       '- { cookies: [...cookies] }\n' + 
+                       '- { url: "...", cookies: [...cookies] }'
             };
           }
           
-          if (!Array.isArray(encryptedData.data)) {
-            console.error('Invalid data format:', typeof encryptedData.data, encryptedData.data);
-            throw {
-              title: 'Invalid Cookie Data',
-              message: 'The imported data is not in the correct format',
-              details: `Expected an array of cookies, but got ${typeof encryptedData.data}`
-            };
-          }
-          cookies = encryptedData.data as Cookie[];
           console.log('Using unencrypted cookie data, got', cookies.length, 'cookies');
         }
       } catch (decryptError) {
         console.error('Decryption error details:', decryptError);
         throw {
-          title: 'Decryption Failed',
+          title: 'Processing Failed',
           message: 'Failed to process cookie data',
           details: decryptError instanceof Error ? decryptError.message : 
                    (typeof decryptError === 'object' && decryptError !== null) ? 
