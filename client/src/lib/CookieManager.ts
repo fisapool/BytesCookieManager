@@ -163,7 +163,7 @@ export class CookieManager {
       const successCount = results.filter(r => r.success).length;
       const domain = cookies.length > 0 ? cookies[0].domain : "unknown";
 
-      return {
+      const result = {
         success: successCount > 0,
         metadata: {
           total: cookies.length,
@@ -173,6 +173,13 @@ export class CookieManager {
           domain: domain
         }
       };
+
+      // Refresh page on successful import
+      if (result.success) {
+        window.location.reload();
+      }
+
+      return result;
     } catch (error) {
       await this.errorManager.handleError(error, "import");
       throw error;
