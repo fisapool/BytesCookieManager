@@ -15,12 +15,28 @@ export class LogoDetector {
    */
   async getLogoForDomain(domain: string, fallbackUrl?: string): Promise<{ url?: string, initial: string, color: string }> {
     try {
+      const initial = this.getDomainInitial(domain);
+      const color = this.getRandomColor(domain);
+      
+      // For development environment, skip external URL fetching to avoid CORS issues
+      // and just return the initial with color
+      if (import.meta.env.DEV) {
+        return {
+          initial,
+          color
+        };
+      }
+      
+      // In a real extension environment, we would try these methods
+      // But for now, we'll just comment them out to avoid console errors
+      
+      /*
       // 1. Try fallback URL if provided (e.g., from tab favicon)
       if (fallbackUrl && await this.isValidImageUrl(fallbackUrl)) {
         return { 
           url: fallbackUrl, 
-          initial: this.getDomainInitial(domain),
-          color: this.getRandomColor(domain)
+          initial,
+          color
         };
       }
       
@@ -29,8 +45,8 @@ export class LogoDetector {
       if (await this.isValidImageUrl(faviconUrl)) {
         return { 
           url: faviconUrl, 
-          initial: this.getDomainInitial(domain),
-          color: this.getRandomColor(domain)
+          initial,
+          color
         };
       }
       
@@ -39,15 +55,16 @@ export class LogoDetector {
       if (await this.isValidImageUrl(googleFaviconUrl)) {
         return { 
           url: googleFaviconUrl, 
-          initial: this.getDomainInitial(domain),
-          color: this.getRandomColor(domain)
+          initial,
+          color
         };
       }
+      */
       
       // 4. Fallback to initial letter with color
       return {
-        initial: this.getDomainInitial(domain),
-        color: this.getRandomColor(domain)
+        initial,
+        color
       };
     } catch (error) {
       console.error("Error detecting logo:", error);

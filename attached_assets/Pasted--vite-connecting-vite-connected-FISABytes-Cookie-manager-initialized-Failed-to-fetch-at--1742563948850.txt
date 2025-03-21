@@ -1,0 +1,24 @@
+[vite] connecting...
+[vite] connected.
+FISABytes: Cookie manager initialized
+Failed to fetch
+at window.fetch (https://7cecf8ae-1fd1-4d3b-9f8c-02804cb843ed-00-2zwmsqnz36x1z.riker.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:218642)
+at LogoDetector.isValidImageUrl (https://7cecf8ae-1fd1-4d3b-9f8c-02804cb843ed-00-2zwmsqnz36x1z.riker.replit.dev/src/lib/LogoDetector.ts:91:30)
+at LogoDetector.getLogoForDomain (https://7cecf8ae-1fd1-4d3b-9f8c-02804cb843ed-00-2zwmsqnz36x1z.riker.replit.dev/src/lib/LogoDetector.ts:27:37)
+at fetchLogo (https://7cecf8ae-1fd1-4d3b-9f8c-02804cb843ed-00-2zwmsqnz36x1z.riker.replit.dev/src/components/WebsiteInfo.tsx:30:41)
+at https://7cecf8ae-1fd1-4d3b-9f8c-02804cb843ed-00-2zwmsqnz36x1z.riker.replit.dev/src/components/WebsiteInfo.tsx:37:5
+at commitHookEffectListMount (https://7cecf8ae-1fd1-4d3b-9f8c-02804cb843ed-00-2zwmsqnz36x1z.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-373CG7ZK.js?v=997df1cf:16913:34)
+at commitPassiveMountOnFiber (https://7cecf8ae-1fd1-4d3b-9f8c-02804cb843ed-00-2zwmsqnz36x1z.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-373CG7ZK.js?v=997df1cf:18154:19)
+at commitPassiveMountEffects_complete (https://7cecf8ae-1fd1-4d3b-9f8c-02804cb843ed-00-2zwmsqnz36x1z.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-373CG7ZK.js?v=997df1cf:18127:17)
+at commitPassiveMountEffects_begin (https://7cecf8ae-1fd1-4d3b-9f8c-02804cb843ed-00-2zwmsqnz36x1z.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-373CG7ZK.js?v=997df1cf:18117:15)
+at commitPassiveMountEffects (https://7cecf8ae-1fd1-4d3b-9f8c-02804cb843ed-00-2zwmsqnz36x1z.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-373CG7ZK.js?v=997df1cf:18107:11)
+Failed to fetch
+at window.fetch (https://7cecf8ae-1fd1-4d3b-9f8c-02804cb843ed-00-2zwmsqnz36x1z.riker.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:218642)
+at LogoDetector.isValidImageUrl (https://7cecf8ae-1fd1-4d3b-9f8c-02804cb843ed-00-2zwmsqnz36x1z.riker.replit.dev/src/lib/LogoDetector.ts:91:30)
+at LogoDetector.getLogoForDomain (https://7cecf8ae-1fd1-4d3b-9f8c-02804cb843ed-00-2zwmsqnz36x1z.riker.replit.dev/src/lib/LogoDetector.ts:35:22)
+at async fetchLogo (https://7cecf8ae-1fd1-4d3b-9f8c-02804cb843ed-00-2zwmsqnz36x1z.riker.replit.dev/src/components/WebsiteInfo.tsx:30:22)
+Failed to fetch
+at window.fetch (https://7cecf8ae-1fd1-4d3b-9f8c-02804cb843ed-00-2zwmsqnz36x1z.riker.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:218642)
+at LogoDetector.isValidImageUrl (https://7cecf8ae-1fd1-4d3b-9f8c-02804cb843ed-00-2zwmsqnz36x1z.riker.replit.dev/src/lib/LogoDetector.ts:91:30)
+at LogoDetector.getLogoForDomain (https://7cecf8ae-1fd1-4d3b-9f8c-02804cb843ed-00-2zwmsqnz36x1z.riker.replit.dev/src/lib/LogoDetector.ts:43:22)
+at async fetchLogo (https://7cecf8ae-1fd1-4d3b-9f8c-02804cb843ed-00-2zwmsqnz36x1z.riker.replit.dev/src/components/WebsiteInfo.tsx:30:22)
