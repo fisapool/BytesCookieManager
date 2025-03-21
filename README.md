@@ -1,4 +1,3 @@
-
 # Cookie Manager Web Application
 
 ## Overview
@@ -76,22 +75,27 @@ The application will be available at `http://0.0.0.0:5000`
 ```
 
 ## Features In Progress
+- **User Authentication**: Secure login and registration system
+- **Automatic Updates**: Extension updates using Chrome Web Store or custom update server
+- **Automatic Sync**: Real-time cookie synchronization
+- **Custom Dialogs**: Enhanced alert and confirmation system
+- **Notifications**: Cookie expiration alerts
+- **Feedback System**: In-app user feedback collection
+- **Customizable Themes**: User-defined color schemes
+- **Header Settings**: Improved settings accessibility
 
-### Core Features
-- **User Authentication**: Integration of user login and registration functionality using secure authentication providers
-- **Automatic Sync**: Real-time cookie synchronization across devices using WebSockets
-- **Custom Dialogs**: Reusable dialog components for alerts and confirmations
-- **Notifications**: Alert system for cookie expiration and important storage changes
+## Auto-Update Configuration
+The extension supports automatic updates through Chrome's built-in update system. For development:
 
-### User Experience
-- **Feedback System**: Built-in form for user feedback and feature requests
-- **Customizable Themes**: User-configurable themes with custom color schemes
-- **Header Settings**: Enhanced settings menu accessible via the header component
+1. **Chrome Web Store Updates**: 
+   - Upload your extension to Chrome Web Store
+   - Chrome will automatically check for updates
 
-### Technical Improvements
-- Cookie validation and security enhancements
-- Real-time WebSocket communication
-- Theme persistence and management
+2. **Self-Hosted Updates (Development)**:
+   - Deploy update manifest on Replit
+   - Add `"update_url": "https://your-repl.replit.dev/updates.xml"` to manifest.json
+   - Host versioned extension files on your Replit deployment
+
 
 ## Available Scripts
 - `npm run dev` - Start development server
