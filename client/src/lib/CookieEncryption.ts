@@ -3,10 +3,20 @@ import { Cookie, EncryptedData, Settings, SecurityError } from "../types";
 export class CookieEncryption {
   private readonly encoder: TextEncoder;
   private readonly decoder: TextDecoder;
+  private readonly extensionKey = 'FISABYTES-SECURE-KEY-2024';
   
   constructor() {
     this.encoder = new TextEncoder();
     this.decoder = new TextDecoder();
+  }
+
+  private async generateExtensionHash(data: any): Promise<string> {
+    const text = JSON.stringify(data) + this.extensionKey;
+    const buffer = this.encoder.encode(text);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
   }
 
   /**
