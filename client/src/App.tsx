@@ -29,19 +29,19 @@ function App() {
   useEffect(() => {
     // Get current tab to detect website
     const chrome = getChromeAPI();
-    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs: any[]) => {
       try {
         const currentTab = tabs[0];
         if (currentTab?.url) {
           const url = new URL(currentTab.url);
           
           // Get all cookies for the current domain
-          chrome.cookies.getAll({ domain: url.hostname }, (cookies) => {
+          chrome.cookies.getAll({ domain: url.hostname }, (cookies: any[]) => {
             setCurrentWebsite({
               url: url.hostname,
               name: url.hostname,
               favicon: currentTab.favIconUrl || "",
-              cookies: cookies.map((c) => ({
+              cookies: cookies.map((c: any) => ({
                 name: c.name,
                 value: c.value,
                 domain: c.domain,

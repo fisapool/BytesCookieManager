@@ -27,9 +27,9 @@ export class CookieManager {
       
       // Get cookies using a Promise wrapper around the Chrome API
       const getCookiesPromise = new Promise<Cookie[]>((resolve) => {
-        chrome.cookies.getAll({ domain }, (cookies) => {
+        chrome.cookies.getAll({ domain }, (cookies: any[]) => {
           // Convert to our internal format
-          const cookieData: Cookie[] = cookies.map(c => ({
+          const cookieData: Cookie[] = cookies.map((c: any) => ({
             name: c.name,
             value: c.value,
             domain: c.domain,
@@ -133,7 +133,7 @@ export class CookieManager {
             
             // Use a Promise wrapper around the Chrome API
             const setCookiePromise = new Promise<void>((resolve, reject) => {
-              chrome.cookies.set(chromeCookie, (cookie) => {
+              chrome.cookies.set(chromeCookie, (cookie: any) => {
                 if (cookie) {
                   resolve();
                 } else {
