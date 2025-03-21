@@ -6,7 +6,7 @@ import CookieSummary from "./CookieSummary";
 import CookieList from "./CookieList";
 import Tips from "./Tips";
 import { Website, StatusMessage } from "../types";
-import { useToast } from '@chakra-ui/react'; // Assuming Chakra UI for toasts
+import { useToast } from "@/hooks/use-toast";
 
 
 interface CookieManagerTabProps {
@@ -62,17 +62,13 @@ const CookieManagerTab: React.FC<CookieManagerTabProps> = ({
         toast({
           title: "Success!",
           description: `Successfully imported ${result.metadata.imported} cookies`,
-          status: "success", // Assuming Chakra UI toast
-          duration: 5000,
-          isClosable: true,
+          variant: "default",
         });
       } else if (result && !result.success) {
           toast({
             title: "Import Failed",
             description: result.error || "Unknown error during import",
-            status: "error",
-            duration: 5000,
-            isClosable: true,
+            variant: "destructive",
           });
       }
     } catch (error) {
@@ -80,9 +76,7 @@ const CookieManagerTab: React.FC<CookieManagerTabProps> = ({
       toast({
         title: "Import Failed",
         description: error instanceof Error ? error.message : "Unknown error during import",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
+        variant: "destructive",
       });
     }
   };

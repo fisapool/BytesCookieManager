@@ -1,6 +1,6 @@
 interface ActionButtonsProps {
   onExport: () => void;
-  onImport: () => void;
+  onImport: (data?: any) => void;
   disabled?: boolean;
 }
 
