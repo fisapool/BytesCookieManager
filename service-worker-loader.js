@@ -1,4 +1,4 @@
-// Service worker for FISABytes Cookie Manager
+// Service worker for FISABytes
 self.addEventListener('install', (event) => {
   console.log('Service Worker installing...');
   event.waitUntil(
@@ -42,27 +42,4 @@ self.addEventListener('fetch', (event) => {
       }
     })()
   );
-});
-
-// Listen for messages from content scripts or popup
-self.addEventListener('message', (event) => {
-  console.log('Service worker received message:', event.data);
-  
-  // Handle cookie export message
-  if (event.data.type === 'EXPORT_COOKIES') {
-    // Respond back to the sender
-    event.ports[0].postMessage({
-      type: 'COOKIES_EXPORTED',
-      success: true
-    });
-  }
-  
-  // Handle cookie import message
-  if (event.data.type === 'IMPORT_COOKIES') {
-    // Respond back to the sender
-    event.ports[0].postMessage({
-      type: 'COOKIES_IMPORTED',
-      success: true
-    });
-  }
 });

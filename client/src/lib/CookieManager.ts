@@ -18,9 +18,8 @@ export class CookieManager {
 
   async exportCookies(domain: string, settings: Settings, customName?: string): Promise<ExportResult> {
     try {
-      // Generate filename based on timestamp in BytesCookies format
-      const timestamp = new Date().toISOString().replace(/:/g, '-');
-      const fileName = customName || `cookies-${timestamp}.json`;
+      const timestamp = new Date().toISOString().split('T')[0];
+      const fileName = customName || `cookies-${domain}-${timestamp}`;
 
       const encryptionKey = 'FISABYTES-SECURE-KEY-2024';
       const chrome = getChromeAPI();
@@ -41,7 +40,7 @@ export class CookieManager {
           if (process.env.NODE_ENV === 'development' || window.location.hostname.includes('replit')) {
             console.log('DEV MODE: Using mock cookies for domain:', domain);
             
-            // Sample development cookies with BytesCookies properties
+            // Sample development cookies
             const mockCookies: Cookie[] = [
               {
                 name: "session_id",
@@ -51,10 +50,7 @@ export class CookieManager {
                 secure: true,
                 httpOnly: true,
                 sameSite: "strict",
-                expirationDate: Date.now() / 1000 + 86400, // 1 day
-                hostOnly: true,
-                session: false,
-                storeId: "0"
+                expirationDate: Date.now() / 1000 + 86400 // 1 day
               },
               {
                 name: "user_preferences",
@@ -64,10 +60,7 @@ export class CookieManager {
                 secure: false,
                 httpOnly: false,
                 sameSite: "lax",
-                expirationDate: Date.now() / 1000 + 2592000, // 30 days
-                hostOnly: false,
-                session: false,
-                storeId: "0"
+                expirationDate: Date.now() / 1000 + 2592000 // 30 days
               },
               {
                 name: "tracking_id",
@@ -77,10 +70,7 @@ export class CookieManager {
                 secure: true,
                 httpOnly: false,
                 sameSite: "none",
-                expirationDate: Date.now() / 1000 + 86400, // 1 day
-                hostOnly: false,
-                session: false,
-                storeId: "0"
+                expirationDate: Date.now() / 1000 + 86400 // 1 day
               }
             ];
             
@@ -113,55 +103,47 @@ export class CookieManager {
             httpOnly: c.httpOnly, 
             sameSite: c.sameSite,
             expirationDate: c.expirationDate,
-            // Include BytesCookies additional properties
-            hostOnly: c.hostOnly || false,
-            session: c.session || false,
-            storeId: c.storeId || "0"
           }));
           resolve(cookieData);
         });
       });
 
       const cookieData = await getCookiesPromise;
-      const BATCH_SIZE = 50;
-      const validCookies = [];
       
-      for (let i = 0; i < cookieData.length; i += BATCH_SIZE) {
-        const batch = cookieData.slice(i, i + BATCH_SIZE);
-        const batchValidationResults = await Promise.all(
-          batch.map(cookie => this.validator.validateCookie(cookie, settings))
-        );
-        
-        validCookies.push(
-          ...batch.filter((_, index) => batchValidationResults[index].isValid)
-        );
-      }
+      // Convert to browser format
+      const browserFormat = {
+        "url": `https://${domain}/`,
+        "cookies": cookieData.map(cookie => ({
+          "domain": cookie.domain,
+          "hostOnly": !cookie.domain.startsWith('.'),
+          "httpOnly": cookie.httpOnly,
+          "name": cookie.name,
+          "path": cookie.path,
+          "sameSite": cookie.sameSite,
+          "secure": cookie.secure,
+          "session": !cookie.expirationDate,
+          "storeId": "0",
+          "value": cookie.value,
+          ...(cookie.expirationDate ? { "expirationDate": cookie.expirationDate } : {})
+        }))
+      };
 
-      let exportData: EncryptedData;
-      if (settings.encryptionEnabled) {
-        exportData = await this.security.encryptCookies(validCookies, settings);
-      } else {
-        // Create export data in BytesCookies format (compatible with fisapool/BytesCookies)
-        exportData = {
-          data: {
-            url: `https://${domain}/`,
-            cookies: validCookies
-          },
-          encrypted: false,
-          metadata: {
-            timestamp: Date.now(),
-            domain: domain,
-            version: "1.0"
-          }
-        };
-      }
+      // Create a valid EncryptedData object that contains the browser format
+      const encryptedData: EncryptedData = {
+        data: browserFormat,  // Store the browser format in the data field
+        encrypted: false,     // Indicate that this data is not encrypted
+        metadata: {
+          timestamp: Date.now(),
+          domain: domain
+        }
+      };
 
       return {
         success: true,
-        data: exportData,
+        data: encryptedData,  // Return the properly typed EncryptedData object
         metadata: {
           total: cookieData.length,
-          valid: validCookies.length,
+          valid: cookieData.length,
           timestamp: Date.now(),
           domain: domain
         }
@@ -181,7 +163,14 @@ export class CookieManager {
 
   async importCookies(importData: any, settings: Settings): Promise<ImportResult> {
     try {
-      // Validate input data first
+      // Create a detailed log for the import operation
+      console.log('Starting cookie import operation with settings:', {
+        encryptionEnabled: settings.encryptionEnabled,
+        encryptionMethod: settings.encryptionMethod,
+        validateSecurity: settings.validateSecurity
+      });
+      
+      // Validate input data first with more detailed messages
       if (!importData) {
         throw {
           title: 'Invalid Import Data',
@@ -191,59 +180,89 @@ export class CookieManager {
       }
       
       // Log the structure of the data to help with debugging
-      console.log('Import data structure:', {
-        keys: importData ? Object.keys(importData) : [],
-        isEncrypted: Boolean(importData.encrypted),
-        hasData: Boolean(importData.data),
-        hasCookies: Boolean(importData.cookies),
-        isDataArray: importData.data ? Array.isArray(importData.data) : false,
-        isCookiesArray: importData.cookies ? Array.isArray(importData.cookies) : false
-      });
+      try {
+        console.log('Import data structure:', {
+          hasData: Boolean(importData.data || importData.cookies),
+          isEncrypted: Boolean(importData.encrypted),
+          dataType: importData.data ? typeof importData.data : 
+                   importData.cookies ? 'cookies array' : 'undefined',
+          isArray: importData.data ? Array.isArray(importData.data) : 
+                  importData.cookies ? Array.isArray(importData.cookies) : false,
+          metadataKeys: importData.metadata ? Object.keys(importData.metadata) : 'no metadata'
+        });
+      } catch (logError) {
+        console.error('Error logging data structure:', logError);
+      }
       
       const chrome = getChromeAPI();
       
+      // Check if we have browser format or EncryptedData format
+      let cookies: Cookie[] = [];
+      
+      // Handle browser format (with cookies array)
+      if (importData.cookies && Array.isArray(importData.cookies)) {
+        cookies = importData.cookies.map((browserCookie: any) => ({
+          name: browserCookie.name,
+          value: browserCookie.value,
+          domain: browserCookie.domain,
+          path: browserCookie.path,
+          secure: browserCookie.secure,
+          httpOnly: browserCookie.httpOnly,
+          sameSite: browserCookie.sameSite,
+          expirationDate: browserCookie.expirationDate
+        }));
+      }
+      // Handle EncryptedData format (with data field)
+      else if (importData.data) {
+        if (importData.encrypted) {
+          console.log('Attempting to decrypt encrypted cookie data...');
+          cookies = await this.security.decryptCookies(importData, settings);
+          console.log('Decryption successful, got', cookies.length, 'cookies');
+        } else if (importData.data.cookies && Array.isArray(importData.data.cookies)) {
+          // Handle EncryptedData with browser format inside
+          cookies = importData.data.cookies.map((browserCookie: any) => ({
+            name: browserCookie.name,
+            value: browserCookie.value,
+            domain: browserCookie.domain,
+            path: browserCookie.path,
+            secure: browserCookie.secure,
+            httpOnly: browserCookie.httpOnly,
+            sameSite: browserCookie.sameSite,
+            expirationDate: browserCookie.expirationDate
+          }));
+        } else if (Array.isArray(importData.data)) {
+          // Handle old format where data is directly an array of cookies
+          cookies = importData.data as Cookie[];
+        } else {
+          throw {
+            title: 'Invalid Cookie Data',
+            message: 'The imported data is not in a recognized format',
+            details: `Expected an array of cookies or a browser format object`
+          };
+        }
+      } else {
+        throw {
+          title: 'Missing Cookie Data',
+          message: 'The imported file has no cookie data',
+          details: 'Could not find cookies array or data property in the imported file'
+        };
+      }
+      
       if (!chrome?.cookies?.set) {
         // In development mode, simulate successful import
-        if (process.env.NODE_ENV === 'development' || window.location.hostname.includes('replit')) {
-          console.log('DEV MODE: Simulating cookie import for:', importData);
+        if (process.env.NODE_ENV === 'development' || 
+            (typeof window !== 'undefined' && window.location.hostname.includes('replit'))) {
+          console.log('DEV MODE: Simulating cookie import');
           
           // Return a mock successful import result
-          let importedCookies: Cookie[] = [];
-          
-          if (importData.encrypted) {
-            // Just simulate decryption by returning sample cookies with BytesCookies properties
-            importedCookies = [
-              {
-                name: "imported_session",
-                value: "imported-value-12345",
-                domain: "example.com",
-                path: "/",
-                secure: true,
-                httpOnly: true,
-                sameSite: "strict",
-                expirationDate: Date.now() / 1000 + 86400,
-                hostOnly: true,
-                session: false,
-                storeId: "0"
-              }
-            ];
-          } else if (Array.isArray(importData.data)) {
-            importedCookies = importData.data as Cookie[];
-          } else if (Array.isArray(importData.cookies)) {
-            importedCookies = importData.cookies as Cookie[];
-          } else if (Array.isArray(importData)) {
-            importedCookies = importData as Cookie[];
-          }
-          
-          // In development, we'll just return success without actually setting any cookies
           return {
             success: true,
             metadata: {
-              total: importedCookies.length,
-              valid: importedCookies.length,
-              imported: importedCookies.length,
+              total: cookies.length,
+              valid: cookies.length,
+              imported: cookies.length,
               timestamp: Date.now(),
-              domain: importedCookies.length > 0 ? importedCookies[0].domain : "example.com"
+              domain: cookies.length > 0 ? cookies[0].domain : "example.com"
             }
           };
         }
@@ -256,49 +275,12 @@ export class CookieManager {
         };
       }
 
-      let cookies: Cookie[];
-      try {
-        if (importData.encrypted) {
-          console.log('Attempting to decrypt encrypted cookie data...');
-          cookies = await this.security.decryptCookies(importData, settings);
-          console.log('Decryption successful, got', cookies.length, 'cookies');
-        } else {
-          // Support multiple formats of cookie data
-          if (Array.isArray(importData)) {
-            // Direct array of cookies
-            cookies = importData as Cookie[];
-          } else if (importData.cookies && Array.isArray(importData.cookies)) {
-            // Format: { cookies: [...] } (used by BytesCookies)
-            cookies = importData.cookies as Cookie[];
-          } else if (importData.data && Array.isArray(importData.data)) {
-            // Format: { data: [...] } (our format)
-            cookies = importData.data as Cookie[];
-          } else if (importData.url && Array.isArray(importData.cookies)) {
-            // Format: { url: "...", cookies: [...] } (another common format)
-            cookies = importData.cookies as Cookie[];
-          } else {
-            console.error('Could not find cookie data in the import file:', importData);
-            throw {
-              title: 'Invalid Cookie Format',
-              message: 'Could not find cookie data in the import file',
-              details: 'The file should contain cookies in one of these formats:\n' +
-                       '- Array of cookies directly\n' +
-                       '- { data: [...cookies] }\n' + 
-                       '- { cookies: [...cookies] }\n' + 
-                       '- { url: "...", cookies: [...cookies] }'
-            };
-          }
-          
-          console.log('Using unencrypted cookie data, got', cookies.length, 'cookies');
-        }
-      } catch (decryptError) {
-        console.error('Decryption error details:', decryptError);
+      // Validate cookies array and ensure it's properly formatted
+      if (!Array.isArray(cookies)) {
         throw {
-          title: 'Processing Failed',
-          message: 'Failed to process cookie data',
-          details: decryptError instanceof Error ? decryptError.message : 
-                   (typeof decryptError === 'object' && decryptError !== null) ? 
-                   JSON.stringify(decryptError, null, 2) : 'Unable to decrypt or parse cookie data'
+          title: 'Invalid Cookie Format',
+          message: 'Cookies data is not in the expected format',
+          details: `Expected an array of cookies, but got ${typeof cookies}`
         };
       }
 
@@ -313,7 +295,7 @@ export class CookieManager {
       let validationResults;
       try {
         validationResults = await Promise.all(
-          cookies.map(cookie => this.validator.validateCookie(cookie, settings))
+          cookies.map((cookie: Cookie) => this.validator.validateCookie(cookie, settings))
         );
       } catch (validationError) {
         throw {
@@ -323,7 +305,7 @@ export class CookieManager {
         };
       }
 
-      const validCookies = cookies.filter((_, index) => 
+      const validCookies = cookies.filter((_, index: number) => 
         validationResults[index].isValid
       );
 
@@ -335,13 +317,32 @@ export class CookieManager {
         };
       }
 
+      console.log(`Importing ${validCookies.length} valid cookies out of ${cookies.length} total`);
+      
+      // Track cookies that couldn't be set
+      const failedCookies: { cookie: Cookie, reason: string }[] = [];
+      
       const results = await Promise.all(
         validCookies.map(async cookie => {
           try {
+            // Skip special cookies that require specific security settings
             if (cookie.name.startsWith("__Host-")) {
+              failedCookies.push({ 
+                cookie, 
+                reason: "Special cookie with __Host- prefix cannot be imported" 
+              });
               return { success: false, cookie, error: "Special cookie with __Host- prefix cannot be imported" };
             }
+            
+            if (cookie.name.startsWith("__Secure-") && !cookie.secure) {
+              failedCookies.push({ 
+                cookie, 
+                reason: "Secure-prefixed cookies must have the secure flag" 
+              });
+              return { success: false, cookie, error: "Secure-prefixed cookies must have the secure flag" };
+            }
 
+            // Ensure cookie has all required properties
             const chromeCookie = {
               url: `http${cookie.secure ? "s" : ""}://${cookie.domain}${cookie.path}`,
               name: cookie.name,
@@ -360,13 +361,23 @@ export class CookieManager {
                 if (cookie) {
                   resolve();
                 } else {
-                  reject(new Error("Failed to set cookie"));
+                  // Chrome extensions API sets lastError when an API call fails
+                  // But it's not in our type definition, so we need to use any
+                  const chromeRuntime = chrome.runtime as any;
+                  const error = chromeRuntime.lastError || new Error("Failed to set cookie");
+                  reject(error);
                 }
               });
             });
 
             return { success: true, cookie };
           } catch (error) {
+            // Track the failure
+            failedCookies.push({ 
+              cookie, 
+              reason: error instanceof Error ? error.message : String(error) 
+            });
+            
             return { 
               success: false, 
               cookie, 
@@ -378,6 +389,14 @@ export class CookieManager {
 
       const successCount = results.filter(r => r.success).length;
       const domain = cookies.length > 0 ? cookies[0].domain : "unknown";
+      
+      // Log details about failed cookies if any
+      if (failedCookies.length > 0) {
+        console.warn(`${failedCookies.length} cookies could not be imported:`);
+        failedCookies.forEach(fc => {
+          console.warn(` - ${fc.cookie.name}: ${fc.reason}`);
+        });
+      }
 
       const result = {
         success: successCount > 0,
@@ -389,6 +408,8 @@ export class CookieManager {
           domain: domain
         }
       };
+      
+      console.log('Import result:', result);
 
       if (result.success && typeof chrome !== 'undefined' && chrome?.tabs) {
         // Get the active tab and reload it if possible
