@@ -38,6 +38,30 @@ interface ChromeAPI {
   };
 }
 
+// Add Chrome API types to window
+declare global {
+  interface Window {
+    chrome?: ChromeAPI;
+  }
+  var chrome: ChromeAPI | undefined;
+}
+
+// Determine if we're in a Chrome extension environment
+export const isExtensionEnvironment = (): boolean => {
+  return typeof window !== 'undefined' && 
+         typeof window.chrome !== 'undefined' && 
+         typeof window.chrome.runtime !== 'undefined' && 
+         typeof window.chrome.runtime.id !== 'undefined';
+};
+
+// Get the Chrome object or mock in development
+export const getChromeAPI = () => {
+  if (isExtensionEnvironment()) {
+    return window.chrome;
+  }
+  return chromeMock;
+};
+
 // Mock implementation of Chrome extension APIs for development environment
 export const chromeMock: ChromeAPI = {
   runtime: {
@@ -62,7 +86,6 @@ export const chromeMock: ChromeAPI = {
   },
   cookies: {
     getAll: (details: any, callback: (cookies: any[]) => void) => {
-      // Return mock cookies for development
       callback([
         {
           name: "session",
@@ -98,64 +121,13 @@ export const chromeMock: ChromeAPI = {
     }
   },
   tabs: {
-    query: (queryInfo: any, callback: (tabs: any[]) => void) => {
+    query: (queryInfo: any, callback: (tabs: ChromeTab[]) => void) => {
       callback([{
         id: 1,
-        url: 'https://example.com',
-        favIconUrl: 'https://example.com/favicon.ico'
+        url: "https://example.com",
+        title: "Example Website",
+        favIconUrl: "https://example.com/favicon.ico"
       }]);
-    },
-    reload: (tabId: number) => {}
-  },
-  storage: {
-    sync: {
-      get: (keys: any, callback?: (items: any) => void) => {
-        if (callback) {
-          callback({});
-        }
-      },
-      set: (items: any, callback?: () => void) => {
-        if (callback) {
-          callback();
-        }
-      }
-    }
-  },
-  downloads: {
-    download: (options: any, callback?: (downloadId: string) => void) => {
-      if (callback) {
-        callback('mock-download-id');
-      }
-    }
-  }
-          expirationDate: Date.now() / 1000 + 2592000 // 30 days from now
-        }
-      ]);
-    },
-    set: (details: any, callback?: (cookie: any) => void) => {
-      // Mock implementation
-      if (callback) {
-        callback(details);
-      }
-    },
-    remove: (details: any, callback?: () => void) => {
-      // Mock implementation
-      if (callback) {
-        callback();
-      }
-    }
-  },
-  tabs: {
-    query: (queryInfo: any, callback: (tabs: ChromeTab[]) => void) => {
-      // Return mock active tab for development
-      callback([
-        {
-          id: 1,
-          url: "https://example.com",
-          title: "Example Website",
-          favIconUrl: "https://example.com/favicon.ico"
-        }
-      ]);
     },
     reload: (tabId: number) => {
       console.log(`Mock: Reloading tab with id ${tabId}`);
@@ -164,7 +136,6 @@ export const chromeMock: ChromeAPI = {
   storage: {
     sync: {
       get: (keys: any, callback?: (items: any) => void) => {
-        // Return mock storage data
         if (callback) {
           callback({
             settings: {
@@ -179,7 +150,6 @@ export const chromeMock: ChromeAPI = {
         }
       },
       set: (items: any, callback?: () => void) => {
-        // Just log the items being stored in development
         console.log("Storage.sync.set:", items);
         if (callback) {
           callback();
@@ -189,35 +159,10 @@ export const chromeMock: ChromeAPI = {
   },
   downloads: {
     download: (options: any, callback?: (downloadId: string) => void) => {
-      // In development, we'll just log the download request
       console.log("Download requested:", options);
       if (callback) {
         callback("mock-download-id");
       }
     }
   }
-};
-
-// Add Chrome API types to window
-declare global {
-  interface Window {
-    chrome?: ChromeAPI;
-  }
-  var chrome: ChromeAPI | undefined;
-}
-
-// Determine if we're in a Chrome extension environment
-export const isExtensionEnvironment = (): boolean => {
-  return typeof window !== 'undefined' && 
-         typeof window.chrome !== 'undefined' && 
-         typeof window.chrome.runtime !== 'undefined' && 
-         typeof window.chrome.runtime.id !== 'undefined';
-};
-
-// Get the Chrome object or mock in development
-export const getChromeAPI = () => {
-  if (isExtensionEnvironment()) {
-    return window.chrome;
-  }
-  return chromeMock;
 };
