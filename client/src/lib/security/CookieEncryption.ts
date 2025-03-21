@@ -18,8 +18,12 @@ export class CookieEncryption {
     try {
       // In development mode or if encryption is disabled, return unencrypted data
       if (!settings.encryptionEnabled) {
+        // Return data in BytesCookies format
         return {
-          data: cookies,
+          data: {
+            url: cookies.length > 0 ? `https://${cookies[0].domain}/` : 'https://example.com/',
+            cookies: cookies
+          },
           encrypted: false,
           metadata: {
             timestamp: Date.now(),
@@ -29,7 +33,13 @@ export class CookieEncryption {
       }
 
       // For actual encryption in production
-      const dataString = JSON.stringify(cookies);
+      // Wrap the cookies in BytesCookies format before encrypting
+      const cookieData = {
+        url: cookies.length > 0 ? `https://${cookies[0].domain}/` : 'https://example.com/',
+        cookies: cookies
+      };
+      
+      const dataString = JSON.stringify(cookieData);
       const dataBuffer = this.encoder.encode(dataString);
       
       // Generate encryption key based on method
@@ -61,7 +71,10 @@ export class CookieEncryption {
       console.error('Encryption error:', error);
       // Fallback to unencrypted in case of error
       return {
-        data: cookies,
+        data: {
+          url: cookies.length > 0 ? `https://${cookies[0].domain}/` : 'https://example.com/',
+          cookies: cookies
+        },
         encrypted: false,
         metadata: {
           timestamp: Date.now(),
@@ -76,9 +89,24 @@ export class CookieEncryption {
    */
   async decryptCookies(encryptedData: EncryptedData, settings: Settings): Promise<Cookie[]> {
     try {
-      // If data is not encrypted, return it as is
+      // If data is not encrypted, handle different possible formats
       if (!encryptedData.encrypted) {
-        return encryptedData.data as Cookie[];
+        if (Array.isArray(encryptedData.data)) {
+          // Direct array of cookies
+          return encryptedData.data as Cookie[];
+        } else if (typeof encryptedData.data === 'object' && encryptedData.data !== null) {
+          // Check for nested formats
+          if (encryptedData.data.cookies && Array.isArray(encryptedData.data.cookies)) {
+            // Format: { cookies: [...] } (BytesCookies format)
+            return encryptedData.data.cookies as Cookie[];
+          } else if (encryptedData.data.url && encryptedData.data.cookies && Array.isArray(encryptedData.data.cookies)) {
+            // Format: { url: "...", cookies: [...] }
+            return encryptedData.data.cookies as Cookie[];
+          }
+        }
+        
+        console.error('Unknown unencrypted data format:', encryptedData.data);
+        throw new Error('Data is not encrypted but has invalid format');
       }
 
       const { cipher, iv } = encryptedData.data as { cipher: string, iv: string };
@@ -96,11 +124,28 @@ export class CookieEncryption {
       
       // Convert back to string and parse as JSON
       const decryptedString = this.decoder.decode(decryptedBuffer);
-      return JSON.parse(decryptedString);
+      const parsedData = JSON.parse(decryptedString);
+      
+      // Handle different possible formats in the decrypted data
+      if (Array.isArray(parsedData)) {
+        // Direct array of cookies
+        return parsedData;
+      } else if (typeof parsedData === 'object' && parsedData !== null) {
+        // Check for nested formats
+        if (parsedData.cookies && Array.isArray(parsedData.cookies)) {
+          // Format: { cookies: [...] } (BytesCookies format)
+          return parsedData.cookies;
+        } else if (parsedData.url && parsedData.cookies && Array.isArray(parsedData.cookies)) {
+          // Format: { url: "...", cookies: [...] }
+          return parsedData.cookies;
+        }
+      }
+      
+      console.error('Unknown decrypted data format:', parsedData);
+      throw new Error('Decrypted data has an invalid format');
     } catch (error) {
       console.error('Decryption error:', error);
-      // Return an empty array in case of decryption failure
-      return [];
+      throw new Error(`Failed to decrypt cookie data: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

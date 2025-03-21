@@ -18,8 +18,9 @@ export class CookieManager {
 
   async exportCookies(domain: string, settings: Settings, customName?: string): Promise<ExportResult> {
     try {
-      const timestamp = new Date().toISOString().split('T')[0];
-      const fileName = customName || `cookies-${domain}-${timestamp}`;
+      // Generate filename based on timestamp in BytesCookies format
+      const timestamp = new Date().toISOString().replace(/:/g, '-');
+      const fileName = customName || `cookies-${timestamp}.json`;
 
       const encryptionKey = 'FISABYTES-SECURE-KEY-2024';
       const chrome = getChromeAPI();
@@ -127,12 +128,17 @@ export class CookieManager {
       if (settings.encryptionEnabled) {
         exportData = await this.security.encryptCookies(validCookies, settings);
       } else {
+        // Create export data in BytesCookies format (compatible with fisapool/BytesCookies)
         exportData = {
-          data: validCookies,
+          data: {
+            url: `https://${domain}/`,
+            cookies: validCookies
+          },
           encrypted: false,
           metadata: {
             timestamp: Date.now(),
-            domain: domain
+            domain: domain,
+            version: "1.0"
           }
         };
       }
