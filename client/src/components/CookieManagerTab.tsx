@@ -6,7 +6,6 @@ import CookieSummary from "./CookieSummary";
 import CookieList from "./CookieList";
 import Tips from "./Tips";
 import { Website, StatusMessage } from "../types";
-import { useToast } from "@/hooks/use-toast";
 
 
 interface CookieManagerTabProps {
@@ -23,7 +22,6 @@ const CookieManagerTab: React.FC<CookieManagerTabProps> = ({
   onImport
 }) => {
   const [status, setStatus] = useState<StatusMessage | null>(null);
-  const { toast } = useToast();
 
   // Reset status after a timeout
   useEffect(() => {
@@ -57,26 +55,18 @@ const CookieManagerTab: React.FC<CookieManagerTabProps> = ({
   // Handle import click
   const handleImport = async (data: any) => {
     try {
-      const result = await onImport(data); // Pass data to onImport
-      if (result && result.success) { // Check for success property
-        toast({
-          title: "Success!",
-          description: `Successfully imported ${result.metadata.imported} cookies`,
-          variant: "default",
-        });
-      } else if (result && !result.success) {
-          toast({
-            title: "Import Failed",
-            description: result.error || "Unknown error during import",
-            variant: "destructive",
-          });
-      }
+      await onImport(data); // Pass data to onImport
+      setStatus({
+        type: "success",
+        title: "Success!",
+        message: "Cookies imported successfully"
+      });
     } catch (error) {
       console.error('Error importing cookies:', error);
-      toast({
+      setStatus({
+        type: "error",
         title: "Import Failed",
-        description: error instanceof Error ? error.message : "Unknown error during import",
-        variant: "destructive",
+        message: error instanceof Error ? error.message : "Unknown error during import"
       });
     }
   };

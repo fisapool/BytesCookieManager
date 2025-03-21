@@ -20,9 +20,9 @@ export default function App() {
   const [errorInfo, setErrorInfo] = useState<ErrorInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentWebsite, setCurrentWebsite] = useState<Website | null>(null);
-  const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState<Settings>({
     encryptionEnabled: true,
-    encryptionMethod: "aes256",
+    encryptionMethod: "aes256" as "aes256" | "aes128",
     passwordEnabled: false,
     validateSecurity: true,
     detectXSS: true,
@@ -30,17 +30,21 @@ export default function App() {
   });
 
   const cookieManager = new CookieManager();
+  
+  const handleError = (err: Error | any) => {
+    setError(err.message || err.title || "An error occurred");
+    console.error('Error:', err);
+    setErrorInfo({
+      title: err.title || "Error", 
+      message: err.message || String(err), 
+      details: err.details || err.stack || ""
+    });
+    setShowErrorModal(true);
+  };
 
 
   // Initialize message handlers and website data fetching
   useEffect(() => {
-    const handleError = (err: Error) => {
-      setError(err.message);
-      console.error('Error:', err);
-      setErrorInfo({title: "Error", message: err.message, details: err.stack})
-      setShowErrorModal(true);
-    };
-
     window.addEventListener('error', (e) => handleError(e.error));
 
     const chrome = getChromeAPI();
@@ -76,7 +80,7 @@ export default function App() {
       }
     });
     return () => window.removeEventListener('error', (e) => handleError(e.error));
-  }, []);
+  }, [handleError]);
 
   const handleExportCookies = async () => {
     if (!currentWebsite) return;
