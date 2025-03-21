@@ -13,9 +13,11 @@ const Header: React.FC<HeaderProps> = ({ onSettingsClick }) => {
     // Get manifest version for display
     try {
       const chrome = getChromeAPI();
-      const manifestData = chrome.runtime.getManifest();
-      if (manifestData.version) {
-        setVersion(manifestData.version);
+      if (chrome && chrome.runtime && typeof chrome.runtime.getManifest === 'function') {
+        const manifestData = chrome.runtime.getManifest();
+        if (manifestData && manifestData.version) {
+          setVersion(manifestData.version);
+        }
       }
     } catch (error) {
       console.error("Error fetching manifest version:", error);

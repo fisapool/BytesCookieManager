@@ -45,41 +45,60 @@ export default function App() {
 
   // Initialize message handlers and website data fetching
   useEffect(() => {
-    window.addEventListener('error', (e) => handleError(e.error));
+    const errorHandler = (e: ErrorEvent) => handleError(e.error);
+    window.addEventListener('error', errorHandler);
 
-    const chrome = getChromeAPI();
-    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs: any[]) => {
-      try {
-        const currentTab = tabs[0];
-        if (currentTab?.url) {
-          const url = new URL(currentTab.url);
-
-          chrome.cookies.getAll({ domain: url.hostname }, (cookies: any[]) => {
-            setCurrentWebsite({
-              url: url.hostname,
-              name: url.hostname,
-              favicon: currentTab.favIconUrl || "",
-              cookies: cookies.map((c: any) => ({
-                name: c.name,
-                value: c.value,
-                domain: c.domain,
-                path: c.path,
-                secure: c.secure,
-                httpOnly: c.httpOnly,
-                sameSite: c.sameSite,
-                expirationDate: c.expirationDate,
-              })),
-              status: cookies.length > 0 ? "available" : "no_cookies"
-            });
+    try {
+      const chrome = getChromeAPI();
+      if (chrome && chrome.tabs) {
+        chrome.tabs.query({ active: true, currentWindow: true }, async (tabs: any[]) => {
+          try {
+            const currentTab = tabs[0];
+            if (currentTab?.url) {
+              const url = new URL(currentTab.url);
+              
+              if (chrome.cookies) {
+                chrome.cookies.getAll({ domain: url.hostname }, (cookies: any[]) => {
+                  setCurrentWebsite({
+                    url: url.hostname,
+                    name: url.hostname,
+                    favicon: currentTab.favIconUrl || "",
+                    cookies: cookies.map((c: any) => ({
+                      name: c.name,
+                      value: c.value,
+                      domain: c.domain,
+                      path: c.path,
+                      secure: c.secure,
+                      httpOnly: c.httpOnly,
+                      sameSite: c.sameSite,
+                      expirationDate: c.expirationDate,
+                    })),
+                    status: cookies.length > 0 ? "available" : "no_cookies"
+                  });
+                  setIsLoading(false);
+                });
+              } else {
+                console.warn("Chrome cookies API not available");
+                setIsLoading(false);
+              }
+            } else {
+              setIsLoading(false);
+            }
+          } catch (error) {
+            handleError(error instanceof Error ? error : new Error(String(error)));
             setIsLoading(false);
-          });
-        }
-      } catch (error) {
-        handleError(error instanceof Error ? error : new Error(String(error)));
+          }
+        });
+      } else {
+        console.warn("Chrome tabs API not available");
         setIsLoading(false);
       }
-    });
-    return () => window.removeEventListener('error', (e) => handleError(e.error));
+    } catch (error) {
+      handleError(error instanceof Error ? error : new Error(String(error)));
+      setIsLoading(false);
+    }
+    
+    return () => window.removeEventListener('error', errorHandler);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -166,9 +185,13 @@ export default function App() {
 
     console.log("Settings updated:", { ...settings, ...newSettings });
 
-    const chrome = getChromeAPI();
-    if (chrome.storage && chrome.storage.sync) {
-      chrome.storage.sync.set({ settings: { ...settings, ...newSettings } });
+    try {
+      const chrome = getChromeAPI();
+      if (chrome && chrome.storage && chrome.storage.sync) {
+        chrome.storage.sync.set({ settings: { ...settings, ...newSettings } });
+      }
+    } catch (error) {
+      console.warn("Failed to save settings to chrome storage:", error);
     }
   };
 
