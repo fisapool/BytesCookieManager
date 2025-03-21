@@ -1,14 +1,9 @@
-import { CookieEncryption } from "./CookieEncryption";
-import { CookieValidator } from "./CookieValidator";
-import { ErrorManager } from "./ErrorManager";
-import { getChromeAPI } from "./chromeMock";
-import { 
-  Cookie, 
-  ExportResult, 
-  ImportResult, 
-  EncryptedData,
-  Settings
-} from "../types";
+import { CookieEncryption } from './security/CookieEncryption';
+import { CookieValidator } from './validation/CookieValidator';
+import { ErrorManager } from './errors/ErrorManager';
+import { ExportResult, EncryptedData, ImportResult, Cookie, Settings } from '../types';
+
+const getChromeAPI = () => (typeof chrome !== 'undefined' ? chrome : undefined);
 
 export class CookieManager {
   private readonly security: CookieEncryption;
@@ -22,20 +17,16 @@ export class CookieManager {
   }
 
   async exportCookies(domain: string, settings: Settings, customName?: string): Promise<ExportResult> {
-    const timestamp = new Date().toISOString().split('T')[0];
-    const fileName = customName || `cookies-${domain}-${timestamp}`;
-    
-    // Add encryption key specific to this extension
-    const encryptionKey = 'FISABYTES-SECURE-KEY-2024';
-    
     try {
+      const timestamp = new Date().toISOString().split('T')[0];
+      const fileName = customName || `cookies-${domain}-${timestamp}`;
+
+      const encryptionKey = 'FISABYTES-SECURE-KEY-2024';
       const chrome = getChromeAPI();
-      
-      // Get cookies using a Promise wrapper around the Chrome API
+
       const getCookiesPromise = new Promise<Cookie[]>((resolve) => {
-        chrome.cookies.getAll({ domain }, (cookies: any[]) => {
-          // Convert to our internal format
-          const cookieData: Cookie[] = cookies.map((c: any) => ({
+        chrome?.cookies?.getAll({ domain }, (cookies: any[]) => {
+          const cookieData: Cookie[] = (cookies || []).map((c: any) => ({
             name: c.name,
             value: c.value,
             domain: c.domain,
@@ -50,18 +41,14 @@ export class CookieManager {
       });
 
       const cookieData = await getCookiesPromise;
-
-      // Validate cookies
       const validationResults = await Promise.all(
         cookieData.map(cookie => this.validator.validateCookie(cookie, settings))
       );
 
-      // Filter out invalid cookies
       const validCookies = cookieData.filter((_, index) => 
         validationResults[index].isValid
       );
 
-      // Encrypt valid cookies if encryption is enabled
       let exportData: EncryptedData;
       if (settings.encryptionEnabled) {
         exportData = await this.security.encryptCookies(validCookies, settings);
@@ -95,8 +82,7 @@ export class CookieManager {
   async importCookies(encryptedData: EncryptedData, settings: Settings): Promise<ImportResult> {
     try {
       const chrome = getChromeAPI();
-      
-      // Decrypt cookies if they are encrypted
+
       let cookies: Cookie[];
       if (encryptedData.encrypted) {
         cookies = await this.security.decryptCookies(encryptedData, settings);
@@ -104,26 +90,21 @@ export class CookieManager {
         cookies = encryptedData.data as Cookie[];
       }
 
-      // Validate each cookie
       const validationResults = await Promise.all(
         cookies.map(cookie => this.validator.validateCookie(cookie, settings))
       );
 
-      // Filter valid cookies
       const validCookies = cookies.filter((_, index) => 
         validationResults[index].isValid
       );
 
-      // Set cookies using Chrome API
       const results = await Promise.all(
         validCookies.map(async cookie => {
           try {
-            // Skip special cookies with __Host- prefix for security
             if (cookie.name.startsWith("__Host-")) {
               return { success: false, cookie, error: "Special cookie with __Host- prefix cannot be imported" };
             }
-            
-            // Convert to Chrome cookie format
+
             const chromeCookie = {
               url: `http${cookie.secure ? "s" : ""}://${cookie.domain}${cookie.path}`,
               name: cookie.name,
@@ -132,14 +113,13 @@ export class CookieManager {
               path: cookie.path,
               secure: cookie.secure,
               httpOnly: cookie.httpOnly,
-              sameSite: cookie.sameSite as any, // Use 'any' for development
+              sameSite: cookie.sameSite as any,
               expirationDate: cookie.expirationDate,
               storeId: "0"
             };
-            
-            // Use a Promise wrapper around the Chrome API
-            const setCookiePromise = new Promise<void>((resolve, reject) => {
-              chrome.cookies.set(chromeCookie, (cookie: any) => {
+
+            await new Promise<void>((resolve, reject) => {
+              chrome?.cookies?.set(chromeCookie, (cookie: any) => {
                 if (cookie) {
                   resolve();
                 } else {
@@ -147,8 +127,7 @@ export class CookieManager {
                 }
               });
             });
-            
-            await setCookiePromise;
+
             return { success: true, cookie };
           } catch (error) {
             return { 
@@ -174,20 +153,12 @@ export class CookieManager {
         }
       };
 
-      // Show success message and refresh current tab
-      if (result.success) {
-        // Get the current tab and refresh only that tab
-        const chrome = getChromeAPI();
-        if (chrome?.tabs) {
-          chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            if (tabs[0]?.id) {
-              chrome.tabs.reload(tabs[0].id);
-            }
-          });
-        } else {
-          // Fallback for web development
-          window.location.reload();
-        }
+      if (result.success && chrome?.tabs) {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          if (tabs[0]?.id) {
+            chrome.tabs.reload(tabs[0].id);
+          }
+        });
       }
 
       return result;
