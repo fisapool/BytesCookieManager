@@ -153,12 +153,17 @@ export class CookieManager {
         }
       };
 
-      if (result.success && chrome?.tabs) {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          if (tabs[0]?.id) {
-            chrome.tabs.reload(tabs[0].id);
-          }
-        });
+      if (result.success && typeof chrome !== 'undefined' && chrome?.tabs) {
+        // Get the active tab and reload it if possible
+        try {
+          chrome.tabs.query({ active: true, currentWindow: true }, (tabs: any[]) => {
+            if (tabs && tabs.length > 0 && tabs[0]?.id) {
+              chrome.tabs.reload(tabs[0].id);
+            }
+          });
+        } catch (error) {
+          console.warn('Failed to reload tab:', error);
+        }
       }
 
       return result;

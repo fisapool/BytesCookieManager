@@ -1,6 +1,47 @@
+// Chrome extension type definitions
+interface ChromeTab {
+  id?: number;
+  url?: string;
+  title?: string;
+  favIconUrl?: string;
+}
+
+interface ChromeRuntime {
+  id?: string;
+  getManifest: () => any;
+  onMessage: {
+    addListener: (callback: (message: any, sender: any, sendResponse: any) => void) => void;
+    removeListener: (callback: (message: any, sender: any, sendResponse: any) => void) => void;
+  };
+  sendMessage: (message: any, callback?: (response: any) => void) => boolean;
+}
+
+interface ChromeAPI {
+  runtime: ChromeRuntime;
+  cookies: {
+    getAll: (details: any, callback: (cookies: any[]) => void) => void;
+    set: (details: any, callback?: (cookie: any) => void) => void;
+    remove: (details: any, callback?: () => void) => void;
+  };
+  tabs: {
+    query: (queryInfo: any, callback: (tabs: ChromeTab[]) => void) => void;
+    reload: (tabId: number) => void;
+  };
+  storage: {
+    sync: {
+      get: (keys: any, callback?: (items: any) => void) => void;
+      set: (items: any, callback?: () => void) => void;
+    };
+  };
+  downloads: {
+    download: (options: any, callback?: (downloadId: string) => void) => void;
+  };
+}
+
 // Mock implementation of Chrome extension APIs for development environment
-export const chromeMock = {
+export const chromeMock: ChromeAPI = {
   runtime: {
+    id: "mock-extension-id",
     getManifest: () => {
       return {
         name: "FISABytes",
@@ -64,7 +105,7 @@ export const chromeMock = {
     }
   },
   tabs: {
-    query: (queryInfo: any, callback: (tabs: any[]) => void) => {
+    query: (queryInfo: any, callback: (tabs: ChromeTab[]) => void) => {
       // Return mock active tab for development
       callback([
         {
@@ -74,6 +115,9 @@ export const chromeMock = {
           favIconUrl: "https://example.com/favicon.ico"
         }
       ]);
+    },
+    reload: (tabId: number) => {
+      console.log(`Mock: Reloading tab with id ${tabId}`);
     }
   },
   storage: {
@@ -113,18 +157,20 @@ export const chromeMock = {
   }
 };
 
-// Declare global chrome variable for TypeScript
+// Add Chrome API types to window
 declare global {
   interface Window {
-    chrome?: any;
+    chrome?: ChromeAPI;
   }
-  const chrome: any | undefined;
+  var chrome: ChromeAPI | undefined;
 }
 
 // Determine if we're in a Chrome extension environment
 export const isExtensionEnvironment = (): boolean => {
-  return typeof window !== 'undefined' && typeof window.chrome !== 'undefined' && 
-         typeof window.chrome.runtime !== 'undefined' && !!window.chrome.runtime.id;
+  return typeof window !== 'undefined' && 
+         typeof window.chrome !== 'undefined' && 
+         typeof window.chrome.runtime !== 'undefined' && 
+         typeof window.chrome.runtime.id !== 'undefined';
 };
 
 // Get the Chrome object or mock in development
