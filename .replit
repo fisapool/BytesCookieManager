@@ -52,7 +52,7 @@ args = "mkdir -p dist"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "zip -r dist/extension.zip attached_assets/* client/dist/*"
+args = "zip -r dist/extension.zip attached_assets/*"
 
 [[workflows.workflow]]
 name = "Development"
