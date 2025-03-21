@@ -114,7 +114,7 @@ export class LogoDetector {
       // Use fetch to check if URL is valid and is an image
       const response = await fetch(url, { method: 'HEAD' });
       const contentType = response.headers.get('content-type');
-      return response.ok && contentType?.startsWith('image/');
+      return response.ok && (contentType?.startsWith('image/') || false);
     } catch (error) {
       return false;
     }

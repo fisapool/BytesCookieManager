@@ -20,12 +20,21 @@ const WebsiteInfo: React.FC<WebsiteInfoProps> = ({ website, isLoading }) => {
   useEffect(() => {
     const fetchLogo = async () => {
       if (website) {
-        const logoDetector = new LogoDetector();
-        const logo = await logoDetector.getLogoForDomain(
-          website.url,
-          website.favicon
-        );
-        setLogoInfo(logo);
+        try {
+          const logoDetector = new LogoDetector();
+          const logo = await logoDetector.getLogoForDomain(
+            website.url,
+            website.favicon
+          );
+          setLogoInfo(logo);
+        } catch (error) {
+          console.error("Error fetching logo:", error);
+          // Fallback to just initial and color
+          setLogoInfo({
+            initial: website.url.charAt(0).toUpperCase(),
+            color: "#4F46E5"
+          });
+        }
       }
     };
     
