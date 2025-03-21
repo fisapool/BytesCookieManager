@@ -1,0 +1,11 @@
+
+{
+  "appName": {
+    "message": "FISABytes Cookie Manager",
+    "description": "The name of the extension"
+  },
+  "appDescription": {
+    "message": "Enhanced cookie management with better security and encryption",
+    "description": "The description of the extension"
+  }
+}
