@@ -81,6 +81,7 @@ export interface EncryptedData {
     timestamp?: number;
     domain?: string;
     version?: string;
+    error?: string;
   };
 }
 

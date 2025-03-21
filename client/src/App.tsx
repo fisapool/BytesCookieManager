@@ -80,7 +80,8 @@ export default function App() {
       }
     });
     return () => window.removeEventListener('error', (e) => handleError(e.error));
-  }, [handleError]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleExportCookies = async () => {
     if (!currentWebsite) return;
