@@ -75,6 +75,24 @@ The application will be available at `http://0.0.0.0:5000`
 └── migrations/         # Database migrations
 ```
 
+## Features In Progress
+
+### Core Features
+- **User Authentication**: Integration of user login and registration functionality using secure authentication providers
+- **Automatic Sync**: Real-time cookie synchronization across devices using WebSockets
+- **Custom Dialogs**: Reusable dialog components for alerts and confirmations
+- **Notifications**: Alert system for cookie expiration and important storage changes
+
+### User Experience
+- **Feedback System**: Built-in form for user feedback and feature requests
+- **Customizable Themes**: User-configurable themes with custom color schemes
+- **Header Settings**: Enhanced settings menu accessible via the header component
+
+### Technical Improvements
+- Cookie validation and security enhancements
+- Real-time WebSocket communication
+- Theme persistence and management
+
 ## Available Scripts
 - `npm run dev` - Start development server
 - `npm run build` - Build for production

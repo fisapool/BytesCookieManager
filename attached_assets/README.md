@@ -71,6 +71,15 @@ FISABytes/
 - Implements smart cookie validation
 - Handles various cookie formats and properties
 
+## Features In Progress
+- **User Authentication**: Secure login and registration system
+- **Automatic Sync**: Real-time cookie synchronization
+- **Custom Dialogs**: Enhanced alert and confirmation system
+- **Notifications**: Cookie expiration alerts
+- **Feedback System**: In-app user feedback collection
+- **Customizable Themes**: User-defined color schemes
+- **Header Settings**: Improved settings accessibility
+
 ## Limitations and Future Features
 - **Cookie Duration Modification**: The current version does not support modifying cookie durations directly through the UI. The extension preserves the original expiration dates during import if they are still valid, otherwise, it creates session cookies.
 - **Cookie Editing**: Individual cookie editing features will be implemented in future versions.
