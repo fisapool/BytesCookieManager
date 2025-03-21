@@ -7,7 +7,7 @@ channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["npm", "run", "start"]
+run = ["sh", "-c", "npm run dev"]
 build = ["npm", "run", "build"]
 
 [[ports]]
@@ -40,3 +40,16 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Build Extension"
+author = 40728699
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "mkdir -p dist"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "zip -r dist/extension.zip attached_assets/*"

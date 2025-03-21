@@ -8,6 +8,7 @@ import ErrorModal from "./components/ErrorModal";
 import { Tab, Website, ErrorInfo, Settings, Cookie } from "./types";
 import { CookieManager } from "./lib/CookieManager";
 import { getChromeAPI } from "./lib/chromeMock";
+import Landing from './pages/Landing'; // Added import for Landing page
 
 function App() {
   const [activeTab, setActiveTab] = useState<Tab>("cookies");
@@ -34,7 +35,7 @@ function App() {
         const currentTab = tabs[0];
         if (currentTab?.url) {
           const url = new URL(currentTab.url);
-          
+
           // Get all cookies for the current domain
           chrome.cookies.getAll({ domain: url.hostname }, (cookies: any[]) => {
             setCurrentWebsite({
@@ -79,11 +80,11 @@ function App() {
     try {
       setIsLoading(true);
       const result = await cookieManager.exportCookies(currentWebsite.url, settings);
-      
+
       // Create a download for the exported cookies
       const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
-      
+
       // In development, just create a download link
       const a = document.createElement('a');
       a.href = url;
@@ -91,7 +92,7 @@ function App() {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      
+
       // Show success message
       // This would typically update a status component
     } catch (error) {
@@ -112,24 +113,24 @@ function App() {
       const fileInput = document.createElement('input');
       fileInput.type = 'file';
       fileInput.accept = '.json';
-      
+
       fileInput.onchange = async (event) => {
         const target = event.target as HTMLInputElement;
         const files = target.files;
-        
+
         if (!files || files.length === 0) return;
-        
+
         const file = files[0];
         const reader = new FileReader();
-        
+
         reader.onload = async (e) => {
           try {
             setIsLoading(true);
             const content = e.target?.result as string;
             const data = JSON.parse(content);
-            
+
             const result = await cookieManager.importCookies(data, settings);
-            
+
             // Update UI with import results
             if (result.success) {
               // Show success notification
@@ -152,10 +153,10 @@ function App() {
             setIsLoading(false);
           }
         };
-        
+
         reader.readAsText(file);
       };
-      
+
       fileInput.click();
     } catch (error) {
       console.error('File selection error:', error);
@@ -172,10 +173,10 @@ function App() {
       ...settings,
       ...newSettings
     });
-    
+
     // For development, just console log the settings
     console.log("Settings updated:", { ...settings, ...newSettings });
-    
+
     // In a real extension environment this would use chrome.storage
     const chrome = getChromeAPI();
     if (chrome.storage && chrome.storage.sync) {
@@ -186,13 +187,13 @@ function App() {
   return (
     <div className="bg-gray-50 text-gray-800 min-h-screen">
       <Header />
-      
+
       <main className="p-4">
         <TabNavigation 
           activeTab={activeTab}
           onChangeTab={setActiveTab}
         />
-        
+
         {activeTab === "cookies" && (
           <CookieManagerTab
             website={currentWebsite}
@@ -201,19 +202,19 @@ function App() {
             onImport={handleImportCookies}
           />
         )}
-        
+
         {activeTab === "security" && (
           <SecurityTab
             settings={settings}
             onUpdateSettings={updateSettings}
           />
         )}
-        
+
         {activeTab === "help" && (
           <HelpTab />
         )}
       </main>
-      
+
       <ErrorModal
         show={showErrorModal}
         error={errorInfo}
