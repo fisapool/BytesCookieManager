@@ -369,15 +369,24 @@ export class CookieManager {
 
       return result;
     } catch (error) {
+      // Format the error using our error manager
       const formattedError = await this.errorManager.handleError(error, "import");
-      // Log the error but don't check for severity as it's not in the type
-      console.error('Import error:', formattedError);
-      // Ensure we're throwing a properly formatted error object
-      throw typeof error === 'object' && error !== null ? error : {
-        title: 'Import Failed',
-        message: String(error),
-        details: 'An unexpected error occurred during cookie import'
+      
+      // Log the formatted error for debugging
+      console.error('Import error (formatted):', formattedError);
+      
+      // Create a properly structured error object
+      const errorObject = {
+        title: formattedError.title || 'Import Failed',
+        message: formattedError.message || String(error) || 'Unknown error occurred during import',
+        details: formattedError.details || 'An unexpected error occurred during cookie import'
       };
+      
+      // Log the final error object that will be thrown
+      console.error('Throwing error object:', errorObject);
+      
+      // Throw the structured error object - this ensures it gets properly parsed in App.tsx
+      throw errorObject;
     }
   }
 }

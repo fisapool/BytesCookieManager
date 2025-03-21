@@ -37,35 +37,52 @@ export default function App() {
     
     if (err && typeof err === 'object') {
       console.error('Error properties:', Object.keys(err));
-      console.error('Error stringified:', JSON.stringify(err, (key, value) => {
-        if (value instanceof Error) {
-          return {
-            name: value.name,
-            message: value.message,
-            stack: value.stack,
-          };
-        }
-        return value;
-      }, 2));
+      try {
+        console.error('Error stringified:', JSON.stringify(err, (key, value) => {
+          if (value instanceof Error) {
+            return {
+              name: value.name,
+              message: value.message,
+              stack: value.stack,
+            };
+          }
+          return value;
+        }, 2));
+      } catch (e) {
+        console.error('Could not stringify error:', e);
+      }
     }
     
-    // Extract meaningful information
-    const errorMessage = err && typeof err === 'object' 
-      ? err.message || err.title || JSON.stringify(err) 
-      : String(err);
-      
-    // Set error state
+    // Standard format for error info
+    let errorTitle = "Error";
+    let errorMessage = "";
+    let errorDetails = "";
+    
+    // Extract meaningful information based on error type
+    if (err instanceof Error) {
+      // Standard JS Error objects
+      errorTitle = err.name || "Error";
+      errorMessage = err.message || "An unexpected error occurred";
+      errorDetails = err.stack || "";
+    } else if (err && typeof err === 'object') {
+      // Custom error objects (like those thrown from our code)
+      errorTitle = err.title || err.name || "Error";
+      errorMessage = err.message || String(err) || "An unexpected error occurred";
+      errorDetails = err.details || err.stack || JSON.stringify(err, null, 2);
+    } else {
+      // Simple string or other primitive values
+      errorMessage = String(err);
+    }
+    
+    // Set simple error message for the banner
     setError(errorMessage);
     
-    // Prepare error info for the modal
-    const errorDetails = err && typeof err === 'object'
-      ? err.details || err.stack || JSON.stringify(err, null, 2)
-      : String(err);
-      
+    // Set detailed error info for the modal
     setErrorInfo({
-      title: err && typeof err === 'object' ? (err.title || "Error") : "Error",
+      title: errorTitle,
       message: errorMessage,
-      details: errorDetails
+      details: errorDetails,
+      timestamp: Date.now()
     });
     
     setShowErrorModal(true);
