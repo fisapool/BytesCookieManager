@@ -22,13 +22,12 @@ export class CookieManager {
   }
 
   async exportCookies(domain: string, settings: Settings, customName?: string): Promise<ExportResult> {
-  const timestamp = new Date().toISOString().split('T')[0];
-  const fileName = customName || `cookies-${domain}-${timestamp}`;
-  
-  // Add encryption key specific to this extension
-  const encryptionKey = 'FISABYTES-SECURE-KEY-2024';
-  
-  try {
+    const timestamp = new Date().toISOString().split('T')[0];
+    const fileName = customName || `cookies-${domain}-${timestamp}`;
+    
+    // Add encryption key specific to this extension
+    const encryptionKey = 'FISABYTES-SECURE-KEY-2024';
+    
     try {
       const chrome = getChromeAPI();
       
