@@ -37,8 +37,14 @@ const ErrorModal: React.FC<ErrorModalProps> = ({ show, error, onClose }) => {
             </div>
             
             <div>
-              <h4 className="text-sm font-medium text-gray-800">{error.title}</h4>
-              <p className="text-sm text-gray-600 mt-1">{error.message}</p>
+              <h4 className="text-sm font-medium text-gray-800">
+                {error.title || "Error"}
+              </h4>
+              <p className="text-sm text-gray-600 mt-1">
+                {typeof error.message === 'string' ? error.message : 
+                 typeof error.message === 'object' ? JSON.stringify(error.message) : 
+                 "An error occurred"}
+              </p>
             </div>
           </div>
           
@@ -46,8 +52,20 @@ const ErrorModal: React.FC<ErrorModalProps> = ({ show, error, onClose }) => {
             <div className="mt-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
               <h5 className="text-xs font-medium text-gray-700 mb-2">Technical Details</h5>
               <pre className="code-area text-xs text-gray-600 whitespace-pre-wrap break-all">
-                {error.details}
+                {typeof error.details === 'string' ? error.details : 
+                 typeof error.details === 'object' ? JSON.stringify(error.details, null, 2) : 
+                 String(error.details)}
               </pre>
+            </div>
+          )}
+          
+          {/* Show operation and timestamp if available */}
+          {(error.operation || error.timestamp) && (
+            <div className="mt-3 text-xs text-gray-500">
+              {error.operation && <span>Operation: {error.operation}</span>}
+              {error.timestamp && <span className="ml-2">
+                Time: {new Date(error.timestamp).toLocaleTimeString()}
+              </span>}
             </div>
           )}
         </div>
