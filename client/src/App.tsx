@@ -1,22 +1,26 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
+import { Tab, ErrorInfo } from './types';
+import WebsiteInfo from './components/WebsiteInfo';
 import Header from "./components/Header";
 import TabNavigation from "./components/TabNavigation";
 import CookieManagerTab from "./components/CookieManagerTab";
 import SecurityTab from "./components/SecurityTab";
 import HelpTab from "./components/HelpTab";
 import ErrorModal from "./components/ErrorModal";
-import { Tab, Website, ErrorInfo, Settings, Cookie } from "./types";
 import { CookieManager } from "./lib/CookieManager";
 import { getChromeAPI } from "./lib/chromeMock";
-import Landing from './pages/Landing'; // Added import for Landing page
+import Landing from './pages/Landing';
+import { Website, Settings, Cookie } from "./types";
 
-function App() {
-  const [activeTab, setActiveTab] = useState<Tab>("cookies");
-  const [currentWebsite, setCurrentWebsite] = useState<Website | null>(null);
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState<Tab>('cookies');
+  const [error, setError] = useState<string | null>(null);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorInfo, setErrorInfo] = useState<ErrorInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [settings, setSettings] = useState<Settings>({
+  const [currentWebsite, setCurrentWebsite] = useState<Website | null>(null);
+  const [settings, setSettings] = useState({
     encryptionEnabled: true,
     encryptionMethod: "aes256",
     passwordEnabled: false,
@@ -27,8 +31,18 @@ function App() {
 
   const cookieManager = new CookieManager();
 
+
+  // Initialize message handlers and website data fetching
   useEffect(() => {
-    // Get current tab to detect website
+    const handleError = (err: Error) => {
+      setError(err.message);
+      console.error('Error:', err);
+      setErrorInfo({title: "Error", message: err.message, details: err.stack})
+      setShowErrorModal(true);
+    };
+
+    window.addEventListener('error', (e) => handleError(e.error));
+
     const chrome = getChromeAPI();
     chrome.tabs.query({ active: true, currentWindow: true }, async (tabs: any[]) => {
       try {
@@ -36,7 +50,6 @@ function App() {
         if (currentTab?.url) {
           const url = new URL(currentTab.url);
 
-          // Get all cookies for the current domain
           chrome.cookies.getAll({ domain: url.hostname }, (cookies: any[]) => {
             setCurrentWebsite({
               url: url.hostname,
@@ -58,21 +71,12 @@ function App() {
           });
         }
       } catch (error) {
-        console.error("Error loading tab data:", error);
-        handleError({
-          title: "Tab Access Error",
-          message: "Unable to access tab information",
-          details: error instanceof Error ? error.message : String(error)
-        });
+        handleError(error instanceof Error ? error : new Error(String(error)));
         setIsLoading(false);
       }
     });
+    return () => window.removeEventListener('error', (e) => handleError(e.error));
   }, []);
-
-  const handleError = (error: ErrorInfo) => {
-    setErrorInfo(error);
-    setShowErrorModal(true);
-  };
 
   const handleExportCookies = async () => {
     if (!currentWebsite) return;
@@ -81,11 +85,9 @@ function App() {
       setIsLoading(true);
       const result = await cookieManager.exportCookies(currentWebsite.url, settings);
 
-      // Create a download for the exported cookies
       const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
 
-      // In development, just create a download link
       const a = document.createElement('a');
       a.href = url;
       a.download = `cookies-${currentWebsite.url}-${new Date().toISOString().slice(0, 10)}.json`;
@@ -93,15 +95,9 @@ function App() {
       a.click();
       document.body.removeChild(a);
 
-      // Show success message
-      // This would typically update a status component
     } catch (error) {
       console.error('Export failed:', error);
-      handleError({
-        title: "Export Failed",
-        message: "Unable to export cookies",
-        details: error instanceof Error ? error.message : String(error)
-      });
+      handleError(error instanceof Error ? error : new Error(String(error)));
     } finally {
       setIsLoading(false);
     }
@@ -109,7 +105,6 @@ function App() {
 
   const handleImportCookies = async () => {
     try {
-      // Create file input element
       const fileInput = document.createElement('input');
       fileInput.type = 'file';
       fileInput.accept = '.json';
@@ -131,11 +126,9 @@ function App() {
 
             const result = await cookieManager.importCookies(data, settings);
 
-            // Update UI with import results
             if (result.success) {
               // Show success notification
             } else {
-              // Show partial success or error
               handleError({
                 title: "Import Partially Successful",
                 message: `Imported ${result.metadata.imported} of ${result.metadata.total} cookies`,
@@ -144,11 +137,7 @@ function App() {
             }
           } catch (error) {
             console.error('Import error:', error);
-            handleError({
-              title: "Import Failed",
-              message: "Unable to import cookies from file",
-              details: error instanceof Error ? error.message : String(error)
-            });
+            handleError(error instanceof Error ? error : new Error(String(error)));
           } finally {
             setIsLoading(false);
           }
@@ -160,11 +149,7 @@ function App() {
       fileInput.click();
     } catch (error) {
       console.error('File selection error:', error);
-      handleError({
-        title: "Import Error",
-        message: "Unable to open file selector",
-        details: error instanceof Error ? error.message : String(error)
-      });
+      handleError(error instanceof Error ? error : new Error(String(error)));
     }
   };
 
@@ -174,10 +159,8 @@ function App() {
       ...newSettings
     });
 
-    // For development, just console log the settings
     console.log("Settings updated:", { ...settings, ...newSettings });
 
-    // In a real extension environment this would use chrome.storage
     const chrome = getChromeAPI();
     if (chrome.storage && chrome.storage.sync) {
       chrome.storage.sync.set({ settings: { ...settings, ...newSettings } });
@@ -185,15 +168,13 @@ function App() {
   };
 
   return (
-    <div className="bg-gray-50 text-gray-800 min-h-screen">
+    <div className="min-h-screen bg-gray-50">
       <Header />
-
-      <main className="p-4">
-        <TabNavigation 
+      <div className="container mx-auto px-4 py-8">
+        <TabNavigation
           activeTab={activeTab}
           onChangeTab={setActiveTab}
         />
-
         {activeTab === "cookies" && (
           <CookieManagerTab
             website={currentWebsite}
@@ -213,8 +194,12 @@ function App() {
         {activeTab === "help" && (
           <HelpTab />
         )}
-      </main>
-
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+        )}
+      </div>
       <ErrorModal
         show={showErrorModal}
         error={errorInfo}
@@ -223,5 +208,3 @@ function App() {
     </div>
   );
 }
-
-export default App;
