@@ -21,7 +21,14 @@ export class CookieManager {
     this.errorManager = new ErrorManager();
   }
 
-  async exportCookies(domain: string, settings: Settings): Promise<ExportResult> {
+  async exportCookies(domain: string, settings: Settings, customName?: string): Promise<ExportResult> {
+  const timestamp = new Date().toISOString().split('T')[0];
+  const fileName = customName || `cookies-${domain}-${timestamp}`;
+  
+  // Add encryption key specific to this extension
+  const encryptionKey = 'FISABYTES-SECURE-KEY-2024';
+  
+  try {
     try {
       const chrome = getChromeAPI();
       
