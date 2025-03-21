@@ -24,9 +24,19 @@ export class CookieManager {
       const encryptionKey = 'FISABYTES-SECURE-KEY-2024';
       const chrome = getChromeAPI();
 
-      const getCookiesPromise = new Promise<Cookie[]>((resolve) => {
+      const getCookiesPromise = new Promise<Cookie[]>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Cookie retrieval timeout'));
+        }, 5000);
+
         chrome?.cookies?.getAll({ domain }, (cookies: any[]) => {
-          const cookieData: Cookie[] = (cookies || []).map((c: any) => ({
+          clearTimeout(timeout);
+          if (!cookies) {
+            resolve([]);
+            return;
+          }
+          
+          const cookieData: Cookie[] = cookies.map((c: any) => ({
             name: c.name,
             value: c.value,
             domain: c.domain,
@@ -41,13 +51,19 @@ export class CookieManager {
       });
 
       const cookieData = await getCookiesPromise;
-      const validationResults = await Promise.all(
-        cookieData.map(cookie => this.validator.validateCookie(cookie, settings))
-      );
-
-      const validCookies = cookieData.filter((_, index) => 
-        validationResults[index].isValid
-      );
+      const BATCH_SIZE = 50;
+      const validCookies = [];
+      
+      for (let i = 0; i < cookieData.length; i += BATCH_SIZE) {
+        const batch = cookieData.slice(i, i + BATCH_SIZE);
+        const batchValidationResults = await Promise.all(
+          batch.map(cookie => this.validator.validateCookie(cookie, settings))
+        );
+        
+        validCookies.push(
+          ...batch.filter((_, index) => batchValidationResults[index].isValid)
+        );
+      }
 
       let exportData: EncryptedData;
       if (settings.encryptionEnabled) {
@@ -74,8 +90,12 @@ export class CookieManager {
         }
       };
     } catch (error) {
-      await this.errorManager.handleError(error, "export");
-      throw error;
+      const formattedError = await this.errorManager.handleError(error, "export");
+      // Only log critical errors
+      if (formattedError.severity === 'critical') {
+        console.error('Critical export error:', formattedError);
+      }
+      throw formattedError;
     }
   }
 
