@@ -1,0 +1,38 @@
+{
+  "name": "FISABytes Cookie Manager",
+  "description": "Enhanced cookie management with better security and encryption",
+  "version": "2.0.0",
+  "manifest_version": 3,
+  "author": "FISA Team",
+  "icons": {
+    "16": "img/logo-16.png",
+    "32": "img/logo-32.png",
+    "48": "img/logo-48.png",
+    "128": "img/logo-128.png"
+  },
+  "action": {
+    "default_popup": "index.html",
+    "default_icon": "img/logo-48.png",
+    "default_title": "FISABytes Cookie Manager"
+  },
+  "background": {
+    "service_worker": "service-worker-loader.js",
+    "type": "module"
+  },
+  "permissions": [
+    "cookies",
+    "storage",
+    "tabs",
+    "activeTab",
+    "scripting",
+    "downloads"
+  ],
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "offline_enabled": true,
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}
